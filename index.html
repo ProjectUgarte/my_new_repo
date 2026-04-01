@@ -20,15 +20,15 @@
     position: fixed; top: 0; left: 0; right: 0;
     display: flex; justify-content: space-between; align-items: center;
     padding: 14px 20px;
-    color: #33ff33; font-size: 22px; font-weight: bold;
+    color: #e0e0e0; font-size: 22px; font-weight: bold;
     letter-spacing: 3px;
     z-index: 10;
     background: linear-gradient(to bottom, rgba(0,0,0,0.97), rgba(0,0,0,0.6), transparent);
     pointer-events: none;
     text-transform: uppercase;
   }
-  #ui span { text-shadow: 0 0 12px #33ff3388, 0 0 4px #33ff33, 0 0 20px #33ff3344; }
-  .timer { color: #33ff33; text-shadow: 0 0 12px #33ff3388, 0 0 4px #33ff33; }
+  #ui span { text-shadow: 0 0 12px #55bbff88, 0 0 4px #55bbff, 0 0 20px #55bbff44; color: #cceeff; }
+  .timer { color: #cceeff; text-shadow: 0 0 12px #55bbff88, 0 0 4px #55bbff; }
   .timer.urgent { color: #ff3333; text-shadow: 0 0 12px #ff333388, 0 0 4px #ff3333; animation: pulse 0.5s ease-in-out infinite alternate; }
   @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
   .lives-container { display: flex; gap: 4px; align-items: center; }
@@ -46,28 +46,28 @@
     justify-content: center; align-items: center;
     background: rgba(0, 0, 0, 0.92);
     z-index: 20;
-    color: #33ff33;
+    color: #e0e0e0;
     text-align: center;
     padding: 20px;
   }
   #overlay.hidden { display: none; }
   #overlay h1 {
     font-size: 36px;
-    color: #33ff33;
-    text-shadow: 0 0 20px #33ff3366, 0 0 4px #33ff33;
+    color: #ffffff;
+    text-shadow: 0 0 20px #55bbff66, 0 0 4px #55bbff;
     margin-bottom: 8px;
     letter-spacing: 6px;
   }
   #overlay h2 {
     font-size: 22px;
-    color: #33ff33;
-    text-shadow: 0 0 12px #33ff3366, 0 0 4px #33ff33;
+    color: #cceeff;
+    text-shadow: 0 0 12px #55bbff66, 0 0 4px #55bbff;
     margin-bottom: 16px;
     letter-spacing: 4px;
   }
   #overlay p {
     font-size: 14px;
-    color: #22aa22;
+    color: #99aabb;
     line-height: 1.8;
     max-width: 300px;
     margin-bottom: 12px;
@@ -75,8 +75,8 @@
   }
   #overlay .score-line {
     font-size: 18px;
-    color: #33ff33;
-    text-shadow: 0 0 10px #33ff3366;
+    color: #cceeff;
+    text-shadow: 0 0 10px #55bbff66;
     margin: 8px 0;
     letter-spacing: 2px;
   }
@@ -87,8 +87,8 @@
   }
   .leaderboard h3 {
     font-size: 14px;
-    color: #33ff33;
-    text-shadow: 0 0 8px #33ff3366;
+    color: #cceeff;
+    text-shadow: 0 0 8px #55bbff66;
     letter-spacing: 3px;
     margin-bottom: 8px;
   }
@@ -102,18 +102,18 @@
     justify-content: space-between;
     padding: 4px 8px;
     font-size: 13px;
-    color: #22aa22;
+    color: #8899aa;
     letter-spacing: 1px;
-    border-bottom: 1px solid #1a3a1a;
+    border-bottom: 1px solid #1a2a3a;
   }
   .leaderboard li.current {
-    color: #33ff33;
-    text-shadow: 0 0 6px #33ff3366;
-    background: rgba(51, 255, 51, 0.05);
+    color: #cceeff;
+    text-shadow: 0 0 6px #55bbff66;
+    background: rgba(85, 187, 255, 0.05);
   }
-  .leaderboard li .rank { color: #33ff33; min-width: 28px; }
+  .leaderboard li .rank { color: #55bbff; min-width: 28px; }
   .leaderboard li .lb-score { color: inherit; }
-  .leaderboard li .lb-level { color: #226622; font-size: 11px; }
+  .leaderboard li .lb-level { color: #556677; font-size: 11px; }
   .name-input-row {
     display: flex;
     gap: 8px;
@@ -125,9 +125,9 @@
     font-family: 'Courier New', monospace;
     font-size: 16px;
     font-weight: bold;
-    color: #33ff33;
+    color: #cceeff;
     background: rgba(0, 0, 0, 0.8);
-    border: 2px solid #33ff33;
+    border: 2px solid #55bbff;
     padding: 8px 12px;
     width: 140px;
     letter-spacing: 3px;
@@ -135,15 +135,15 @@
     outline: none;
   }
   .name-input-row input::placeholder {
-    color: #1a5a1a;
+    color: #334455;
   }
   .name-input-row button {
     font-family: 'Courier New', monospace;
     font-size: 14px;
     font-weight: bold;
     color: #0a0a0a;
-    background: #33ff33;
-    border: 2px solid #33ff33;
+    background: #55bbff;
+    border: 2px solid #55bbff;
     padding: 8px 14px;
     cursor: pointer;
     letter-spacing: 2px;
@@ -156,17 +156,17 @@
     font-family: 'Courier New', monospace;
     font-weight: bold;
     color: #0a0a0a;
-    background: #33ff33;
-    border: 2px solid #33ff33;
+    background: #55bbff;
+    border: 2px solid #55bbff;
     border-radius: 0px;
     cursor: pointer;
-    box-shadow: 0 0 20px #33ff3344, inset 0 0 20px #33ff3322;
+    box-shadow: 0 0 20px #55bbff44, inset 0 0 20px #55bbff22;
     -webkit-tap-highlight-color: transparent;
     letter-spacing: 4px;
     text-transform: uppercase;
   }
   #overlay button:active {
-    background: #22cc22;
+    background: #44aaee;
     transform: scale(0.96);
   }
   .swipe-hint {
@@ -179,9 +179,9 @@
   .swipe-hint.visible { opacity: 0.6; }
   .swipe-hint .line {
     position: absolute;
-    background: #33ff33;
+    background: #55bbff;
     border-radius: 0;
-    box-shadow: 0 0 8px #33ff3388;
+    box-shadow: 0 0 8px #55bbff88;
   }
 </style>
 </head>
@@ -230,7 +230,7 @@ const swipeLine = swipeHint.querySelector('.line');
 const CELL_SIZE = 6;        // larger cells for chunky pixel look
 const WALL_SPEED = 4;       // cells per frame
 const TARGET_FILL = 75;
-const BALL_RADIUS = 9;
+const BALL_RADIUS = 42;
 const BALL_SPEED_BASE = 2.0;
 const BALL_SPEED_INCREMENT = 0.15;
 const UI_TOP_PAD = 48;
@@ -526,7 +526,7 @@ function draw() {
   ctx.fillRect(0, 0, W, H);
 
   // Draw subtle grid lines
-  ctx.strokeStyle = 'rgba(20, 40, 20, 0.3)';
+  ctx.strokeStyle = 'rgba(20, 30, 45, 0.3)';
   ctx.lineWidth = 0.5;
   for (let x = 0; x <= W; x += CELL_SIZE) {
     ctx.beginPath();
@@ -590,16 +590,16 @@ function draw() {
         const cellDrawSize = innerSize + sizeBoost;
         const offset = -sizeBoost / 2;
 
-        // Color: interpolate from bright white to normal wall green
-        const r = Math.floor(30 + 225 * intensity);
-        const g = Math.floor(200 + 55 * intensity);
-        const b = Math.floor(30 + 225 * intensity);
+        // Color: interpolate from bright white-cyan to normal wall blue
+        const r = Math.floor(30 + 200 * intensity);
+        const g = Math.floor(140 + 115 * intensity);
+        const b = Math.floor(180 + 75 * intensity);
 
         // Outer glow halo (large, soft)
         if (intensity > 0.1) {
           const haloSize = cellDrawSize + 12 * intensity;
           const haloOffset = offset - 6 * intensity;
-          ctx.fillStyle = `rgba(50, 255, 50, ${intensity * 0.12})`;
+          ctx.fillStyle = `rgba(85, 187, 255, ${intensity * 0.12})`;
           ctx.fillRect(px + haloOffset - 4, py + haloOffset - 4, haloSize + 8, haloSize + 8);
         }
 
@@ -616,7 +616,7 @@ function draw() {
 
         // Bright center pixel with flare
         if (intensity > 0.2) {
-          ctx.fillStyle = `rgba(220, 255, 220, ${intensity * 0.9})`;
+          ctx.fillStyle = `rgba(200, 230, 255, ${intensity * 0.9})`;
           const dotSize = 2 + intensity * 4;
           ctx.fillRect(
             px + CELL_SIZE / 2 - dotSize / 2,
@@ -633,17 +633,17 @@ function draw() {
         }
 
       } else if (val === 1) {
-        // Normal wall - static terminal green
-        const flicker = 0.9 + Math.random() * 0.1; // subtle CRT flicker
-        const r = Math.floor(20 * flicker);
-        const g = Math.floor(160 * flicker);
-        const b = Math.floor(20 * flicker);
+        // Normal wall - steel blue
+        const flicker = 0.9 + Math.random() * 0.1;
+        const r = Math.floor(30 * flicker);
+        const g = Math.floor(80 * flicker);
+        const b = Math.floor(140 * flicker);
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(px, py, innerSize, innerSize);
 
       } else {
-        // Filled area - dark green
-        ctx.fillStyle = '#081808';
+        // Filled area - dark blue
+        ctx.fillStyle = '#080c18';
         ctx.fillRect(px, py, innerSize, innerSize);
       }
     }
@@ -664,7 +664,7 @@ function draw() {
     for (let ring = 5; ring >= 1; ring--) {
       const ringSize = (CELL_SIZE * ring * 1.5) * (1 + pulseIntensity * throb);
       const ringAlpha = pulseIntensity * 0.2 / ring;
-      ctx.fillStyle = `rgba(100, 255, 100, ${ringAlpha})`;
+      ctx.fillStyle = `rgba(85, 187, 255, ${ringAlpha})`;
       ctx.fillRect(
         ox - ringSize / 2, oy - ringSize / 2,
         ringSize, ringSize
@@ -673,81 +673,73 @@ function draw() {
 
     // Bright center with throb
     const centerSize = CELL_SIZE * 1.5 + pulseIntensity * 8 * throb;
-    ctx.fillStyle = `rgba(220, 255, 220, ${pulseIntensity * 0.95})`;
+    ctx.fillStyle = `rgba(200, 230, 255, ${pulseIntensity * 0.95})`;
     ctx.fillRect(
       ox - centerSize / 2, oy - centerSize / 2,
       centerSize, centerSize
     );
   }
 
-  // Draw balls as pokeball-style spinning spheres
+  // Draw balls as two-tone spinning pixel spheres
   for (const ball of balls) {
-    const bx = ball.x;
-    const by = ball.y;
-    const r = ball.radius + 2; // slightly larger for more resolution
+    const bx = Math.round(ball.x / CELL_SIZE) * CELL_SIZE;
+    const by = Math.round(ball.y / CELL_SIZE) * CELL_SIZE;
+    const r = ball.radius;
     const cells = Math.ceil(r / CELL_SIZE) + 1;
     const angle = ball.angle;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    const bandWidth = CELL_SIZE * 2.5;
+    const buttonRadius = CELL_SIZE * 3.5;
 
-    // Outer glow
-    const glowPulse = 0.5 + 0.5 * Math.sin(frameCount * 0.1 + ball.x * 0.01);
-    ctx.fillStyle = `rgba(30, 180, 30, ${0.12 + glowPulse * 0.08})`;
-    const glowR = r + CELL_SIZE * 2;
-    ctx.fillRect(bx - glowR, by - glowR, glowR * 2, glowR * 2);
-
-    // Draw pixel-by-pixel circle with pokeball halves
     for (let dy = -cells; dy <= cells; dy++) {
       for (let dx = -cells; dx <= cells; dx++) {
         const px = dx * CELL_SIZE;
         const py = dy * CELL_SIZE;
         const dist = Math.sqrt(px * px + py * py);
-        if (dist > r + CELL_SIZE * 0.5) continue;
 
-        const cx = Math.round(bx / CELL_SIZE) * CELL_SIZE + dx * CELL_SIZE;
-        const cy = Math.round(by / CELL_SIZE) * CELL_SIZE + dy * CELL_SIZE;
+        // Circular clip
+        if (dist > r) continue;
 
-        // Rotate the point to determine which half it's on
-        const rotX = px * Math.cos(angle) - py * Math.sin(angle);
-        const rotY = px * Math.sin(angle) + py * Math.cos(angle);
+        const cx = bx + dx * CELL_SIZE;
+        const cy = by + dy * CELL_SIZE;
 
-        const isEdge = dist > r - CELL_SIZE;
-        const isBand = Math.abs(rotY) < CELL_SIZE * 1.2; // center band (dividing line)
-        const isTopHalf = rotY < -CELL_SIZE * 1.2;
+        // Rotate point to determine which half
+        const rotY = px * sinA + py * cosA;
 
-        const flick = 0.92 + Math.random() * 0.08;
+        const isOutline = dist > r - CELL_SIZE * 1.2;
+        const isBand = Math.abs(rotY) < bandWidth;
+        const isButton = dist < buttonRadius && isBand;
+        const isTopHalf = rotY < -bandWidth;
 
-        if (isEdge) {
+        const flick = 0.93 + Math.random() * 0.07;
+
+        if (isOutline) {
           // Dark outline
-          ctx.fillStyle = `rgb(${Math.floor(15 * flick)}, ${Math.floor(80 * flick)}, ${Math.floor(15 * flick)})`;
+          ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(20 * flick)}, ${Math.floor(25 * flick)})`;
+        } else if (isButton) {
+          // Center button — bright white dot
+          const btnDist = dist / buttonRadius;
+          const btnShade = 1 - btnDist * 0.2;
+          ctx.fillStyle = `rgb(${Math.floor(240 * btnShade * flick)}, ${Math.floor(240 * btnShade * flick)}, ${Math.floor(250 * btnShade * flick)})`;
         } else if (isBand) {
-          // Center band - dark dividing line with button
-          if (Math.abs(px) < CELL_SIZE * 1.2 && Math.abs(rotY) < CELL_SIZE * 1.2) {
-            // Center button
-            ctx.fillStyle = `rgb(${Math.floor(200 * flick)}, ${Math.floor(255 * flick)}, ${Math.floor(200 * flick)})`;
-          } else {
-            ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(100 * flick)}, ${Math.floor(20 * flick)})`;
-          }
+          // Dividing band — dark stripe
+          ctx.fillStyle = `rgb(${Math.floor(25 * flick)}, ${Math.floor(25 * flick)}, ${Math.floor(30 * flick)})`;
         } else if (isTopHalf) {
-          // Top half - bright green (like red part of pokeball)
-          const shade = Math.max(0.6, 1 - dist / r * 0.4);
-          ctx.fillStyle = `rgb(${Math.floor(60 * shade * flick)}, ${Math.floor(255 * shade * flick)}, ${Math.floor(60 * shade * flick)})`;
+          // Top half — RED with shading
+          const normDist = dist / r;
+          const shade = Math.max(0.4, 1 - normDist * 0.6);
+          ctx.fillStyle = `rgb(${Math.floor(230 * shade * flick)}, ${Math.floor(35 * shade * flick)}, ${Math.floor(35 * shade * flick)})`;
         } else {
-          // Bottom half - dim green (like white part of pokeball)
-          const shade = Math.max(0.6, 1 - dist / r * 0.3);
-          ctx.fillStyle = `rgb(${Math.floor(15 * shade * flick)}, ${Math.floor(80 * shade * flick)}, ${Math.floor(15 * shade * flick)})`;
+          // Bottom half — WHITE with slight shading
+          const normDist = dist / r;
+          const shade = Math.max(0.55, 1 - normDist * 0.4);
+          ctx.fillStyle = `rgb(${Math.floor(220 * shade * flick)}, ${Math.floor(220 * shade * flick)}, ${Math.floor(230 * shade * flick)})`;
         }
 
         ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
       }
     }
-
-    // Highlight pixel (top-left of ball, rotates slightly)
-    const hlX = Math.round((bx - r * 0.35) / CELL_SIZE) * CELL_SIZE;
-    const hlY = Math.round((by - r * 0.45) / CELL_SIZE) * CELL_SIZE;
-    ctx.fillStyle = 'rgba(200, 255, 200, 0.7)';
-    ctx.fillRect(hlX, hlY, CELL_SIZE, CELL_SIZE);
-    ctx.fillStyle = 'rgba(200, 255, 200, 0.4)';
-    ctx.fillRect(hlX + CELL_SIZE, hlY, CELL_SIZE, CELL_SIZE);
-    ctx.fillRect(hlX, hlY + CELL_SIZE, CELL_SIZE, CELL_SIZE);
   }
 
   // Scanline effect
@@ -893,7 +885,7 @@ function levelComplete() {
   const timeBonus = Math.round(timeRemaining) * 5;
   score += fillPercent * 10 + lives * 50 + timeBonus;
   level++;
-  flashScreen('#33ff33');
+  flashScreen('#55bbff');
   setTimeout(() => {
     showOverlay(
       `// LEVEL ${level - 1} CLEAR`,
