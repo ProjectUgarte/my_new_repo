@@ -31,7 +31,6 @@
   .timer { color: #cceeff; text-shadow: 0 0 12px #55bbff88, 0 0 4px #55bbff; }
   .timer.urgent { color: #ff3333; text-shadow: 0 0 12px #ff333388, 0 0 4px #ff3333; animation: pulse 0.5s ease-in-out infinite alternate; }
   @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
-  .lives-container { display: flex; gap: 4px; align-items: center; }
   .lives { color: #ff3333; text-shadow: 0 0 12px #ff333388, 0 0 4px #ff3333; }
   #gameCanvas {
     display: block;
@@ -51,7 +50,6 @@
     padding: 20px;
   }
   #overlay.hidden { display: none; }
-  #overlay h1 { display: none; }
   #titleCanvas {
     margin-bottom: 12px;
     image-rendering: pixelated;
@@ -233,15 +231,7 @@ const UI_TOP_PAD = 48;
 const BASE_TIME = 60;
 const TIME_PER_LEVEL = 10;
 const GRID_GAP = 1;         // gap between cells for grid look
-
-// --- Colors (terminal green palette) ---
-const COL_BG = [4, 8, 4];
-const COL_GRID_LINE = [8, 18, 8];
-const COL_WALL = [30, 200, 30];
-const COL_WALL_BRIGHT = [100, 255, 100];
-const COL_FILLED = [8, 40, 8];
-const COL_BALL_CORE = [50, 255, 50];
-const COL_BALL_GLOW = [30, 180, 30];
+const UI_ROWS = UI_ROWS;
 
 // --- Game State ---
 let W, H, gridW, gridH;
@@ -260,9 +250,7 @@ let lastTime = 0;
 let timeRemaining = 0;
 let levelTime = 0;
 let frameCount = 0;
-
-// --- Scanline / CRT effect ---
-let scanlineOffset = 0;
+let vignetteGrad = null;
 
 // --- Resize ---
 function resize() {
@@ -272,6 +260,9 @@ function resize() {
   canvas.height = H;
   gridW = Math.floor(W / CELL_SIZE);
   gridH = Math.floor(H / CELL_SIZE);
+  vignetteGrad = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+  vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vignetteGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
 }
 
 // --- Grid helpers ---
@@ -287,7 +278,7 @@ function initGrid() {
     grid[(gridW - 1) + y * gridW] = 1;
   }
   // Top UI area
-  const uiRows = Math.ceil(UI_TOP_PAD / CELL_SIZE);
+  const uiRows = UI_ROWS;
   for (let y = 0; y < uiRows; y++) {
     for (let x = 0; x < gridW; x++) {
       grid[x + y * gridW] = 1;
@@ -467,13 +458,11 @@ function updateWalls() {
       }
     }
 
-    // Mark origin
-    if (wall.cells.length === 0 || !wall.cells.includes(gridIdx(wall.originX, wall.originY))) {
-      if (!isWallOrFilled(wall.originX, wall.originY)) {
-        grid[gridIdx(wall.originX, wall.originY)] = 1;
-        wall.cells.push(gridIdx(wall.originX, wall.originY));
-        wall.cellAge.push(wall.birthFrame);
-      }
+    // Mark origin (check grid directly instead of O(n) array scan)
+    if (!isWallOrFilled(wall.originX, wall.originY)) {
+      grid[gridIdx(wall.originX, wall.originY)] = 1;
+      wall.cells.push(gridIdx(wall.originX, wall.originY));
+      wall.cellAge.push(wall.birthFrame);
     }
 
     // Ball collision
@@ -659,7 +648,7 @@ function draw() {
           (gy > 0 && grid[gridIdx(gx, gy-1)] === 0) ||
           (gy < gridH-1 && grid[gridIdx(gx, gy+1)] === 0);
 
-        const uiRows = Math.ceil(UI_TOP_PAD / CELL_SIZE);
+        const uiRows = UI_ROWS;
         if (touchesOpen || gy < uiRows) {
           // Visible wall - steel blue (always show UI top bar)
           const flicker = 0.9 + Math.random() * 0.1;
@@ -767,11 +756,8 @@ function draw() {
     ctx.fillRect(0, y, W, 1);
   }
 
-  // Subtle vignette
-  const vGrad = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
-  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  vGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
-  ctx.fillStyle = vGrad;
+  // Subtle vignette (cached)
+  ctx.fillStyle = vignetteGrad;
   ctx.fillRect(0, 0, W, H);
 
   // Flash overlay
