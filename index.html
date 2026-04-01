@@ -200,9 +200,8 @@
     &gt; AVOID BALL CONTACT<br>
     &gt; BEAT THE CLOCK FOR BONUS</p>
   <button id="startBtn">START</button>
+  <p id="brandLine" style="margin-top: 72px; font-size: 13px; letter-spacing: 2px; color: rgba(85, 187, 255, 0.4); font-family: 'Courier New', monospace;">by project(u)</p>
 </div>
-<p id="brandLine" style="position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 13px; letter-spacing: 2px; color: rgba(85, 187, 255, 0.4); font-family: 'Courier New', monospace; z-index: 25; margin: 0; pointer-events: none;">by project(u)</p>
-
 <div class="swipe-hint" id="swipeHint">
   <div class="line"></div>
 </div>
@@ -225,11 +224,11 @@ const swipeLine = swipeHint.querySelector('.line');
 
 // --- Constants ---
 const CELL_SIZE = 6;        // larger cells for chunky pixel look
-const WALL_SPEED = 4;       // cells per frame
+const WALL_SPEED = 2;       // cells per frame
 const TARGET_FILL = 75;
 const BALL_RADIUS = 21;
-const BALL_SPEED_BASE = 2.0;
-const BALL_SPEED_INCREMENT = 0.15;
+const BALL_SPEED_BASE = 2.8;
+const BALL_SPEED_INCREMENT = 0.2;
 const UI_TOP_PAD = 48;
 const BASE_TIME = 60;
 const TIME_PER_LEVEL = 10;
@@ -896,7 +895,6 @@ function startLevel() {
   gameRunning = true;
   if (menuAnimFrame) { cancelAnimationFrame(menuAnimFrame); menuAnimFrame = null; }
   document.getElementById('ui').style.display = '';
-  document.getElementById('brandLine').style.display = 'none';
   overlay.classList.add('hidden');
   lastTime = performance.now();
   if (animFrame) cancelAnimationFrame(animFrame);
@@ -905,12 +903,12 @@ function startLevel() {
 
 function levelComplete() {
   gameRunning = false;
-  if (!menuAnimFrame) menuLoop();
   const timeBonus = Math.round(timeRemaining) * 5;
   score += fillPercent * 10 + lives * 50 + timeBonus;
   level++;
   flashScreen('#55bbff');
   setTimeout(() => {
+    if (!menuAnimFrame) menuLoop();
     showOverlay(
       `// LEVEL ${level - 1} CLEAR`,
       `SCORE: ${score}`,
@@ -922,10 +920,10 @@ function levelComplete() {
 
 function gameOver() {
   gameRunning = false;
-  if (!menuAnimFrame) menuLoop();
   const finalScore = score;
   const finalLevel = level;
   setTimeout(() => {
+    if (!menuAnimFrame) menuLoop();
     showGameOverOverlay(finalScore, finalLevel);
     level = 1;
     lives = 3;
@@ -935,7 +933,6 @@ function gameOver() {
 
 function showGameOverOverlay(finalScore, finalLevel) {
   document.getElementById('ui').style.display = 'none';
-  document.getElementById('brandLine').style.display = '';
   const highScore = isHighScore(finalScore);
   let html = `
     <canvas id="gameOverTitle" style="margin-bottom:12px; image-rendering:pixelated; image-rendering:crisp-edges;"></canvas>
@@ -960,7 +957,7 @@ function showGameOverOverlay(finalScore, finalLevel) {
   overlay.classList.remove('hidden');
 
   const goCanvas = document.getElementById('gameOverTitle');
-  if (goCanvas) renderPixelText(goCanvas, 'GAME OVER', 6);
+  if (goCanvas) renderPixelText(goCanvas, 'GAME OVER', 6, 'red');
 
   document.getElementById('startBtn').addEventListener('click', (e) => { e.preventDefault(); startLevel(); });
   document.getElementById('startBtn').addEventListener('touchend', (e) => { e.preventDefault(); startLevel(); });
@@ -1151,7 +1148,7 @@ const PIXEL_FONT = {
   ' ': [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],
 };
 
-function renderPixelText(canvasEl, text, pxSize) {
+function renderPixelText(canvasEl, text, pxSize, color) {
   const tCtx = canvasEl.getContext('2d');
   const charH = 7;
   const gap = 1;
@@ -1191,9 +1188,11 @@ function renderPixelText(canvasEl, text, pxSize) {
           const y = (offY + row) * pxSize;
 
           if (pass === 0) {
-            tCtx.fillStyle = '#1a3050';
+            tCtx.fillStyle = color === 'red' ? '#2a0808' : '#1a3050';
           } else {
-            tCtx.fillStyle = (row === 0 || col === 0) ? '#88ccff' : '#55bbff';
+            tCtx.fillStyle = color === 'red'
+              ? ((row === 0 || col === 0) ? '#cc3333' : '#991111')
+              : ((row === 0 || col === 0) ? '#88ccff' : '#55bbff');
           }
           tCtx.fillRect(x, y, pxSize, pxSize);
         }
