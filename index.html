@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WallBall</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #0a0a1a;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: 'Courier New', monospace;
+  }
+  #ui {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px;
+    color: #00ffcc; font-size: 14px; font-weight: bold;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(10,10,26,0.95), transparent);
+    pointer-events: none;
+  }
+  #ui span { text-shadow: 0 0 8px #00ffcc88; }
+  .lives { color: #ff4466; text-shadow: 0 0 8px #ff446688; }
+  #gameCanvas {
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+  }
+  #overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    background: rgba(10, 10, 26, 0.92);
+    z-index: 20;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+  }
+  #overlay.hidden { display: none; }
+  #overlay h1 {
+    font-size: 36px;
+    color: #00ffcc;
+    text-shadow: 0 0 20px #00ffcc88;
+    margin-bottom: 8px;
+  }
+  #overlay h2 {
+    font-size: 22px;
+    color: #00ffcc;
+    text-shadow: 0 0 12px #00ffcc88;
+    margin-bottom: 16px;
+  }
+  #overlay p {
+    font-size: 15px;
+    color: #aabbcc;
+    line-height: 1.6;
+    max-width: 300px;
+    margin-bottom: 12px;
+  }
+  #overlay .score-line {
+    font-size: 18px;
+    color: #ffcc00;
+    text-shadow: 0 0 10px #ffcc0066;
+    margin: 8px 0;
+  }
+  #overlay button {
+    margin-top: 20px;
+    padding: 14px 40px;
+    font-size: 18px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #0a0a1a;
+    background: #00ffcc;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 20px #00ffcc66;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #overlay button:active {
+    background: #00ddaa;
+    transform: scale(0.96);
+  }
+  .swipe-hint {
+    position: fixed;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .swipe-hint.visible { opacity: 0.6; }
+  .swipe-hint .line {
+    position: absolute;
+    background: #00ffcc;
+    border-radius: 2px;
+    box-shadow: 0 0 8px #00ffcc88;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+  <span id="levelDisplay">LEVEL 1</span>
+  <span id="fillDisplay">0%</span>
+  <span class="lives" id="livesDisplay">&#9829;&#9829;&#9829;</span>
+</div>
+
+<div id="overlay">
+  <h1>WALLBALL</h1>
+  <p>Trap the balls by building walls.<br>
+    <strong>Tap &amp; swipe</strong> to choose direction.<br>
+    Fill <strong>75%</strong> of the field to advance.<br>
+    Don't let balls hit your walls!</p>
+  <button id="startBtn">PLAY</button>
+</div>
+
+<div class="swipe-hint" id="swipeHint">
+  <div class="line"></div>
+</div>
+
+<script>
+// ============================================================
+// WALLBALL - A modern mobile JezzBall
+// ============================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const levelDisplay = document.getElementById('levelDisplay');
+const fillDisplay = document.getElementById('fillDisplay');
+const livesDisplay = document.getElementById('livesDisplay');
+const swipeHint = document.getElementById('swipeHint');
+const swipeLine = swipeHint.querySelector('.line');
+
+// --- Constants ---
+const CELL_SIZE = 4;
+const WALL_SPEED = 6;       // cells per frame
+const TARGET_FILL = 75;
+const BALL_RADIUS = 8;
+const BALL_SPEED_BASE = 2.0;
+const BALL_SPEED_INCREMENT = 0.15;
+const UI_TOP_PAD = 48;
+
+// --- Game State ---
+let W, H, gridW, gridH;
+let grid;           // 0=open, 1=wall, 2=filled
+let balls = [];
+let activeWalls = [];
+let level = 1;
+let lives = 3;
+let score = 0;
+let fillPercent = 0;
+let totalCells = 0;
+let gameRunning = false;
+let animFrame = null;
+let touchStart = null;
+let lastTime = 0;
+
+// --- Resize ---
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+  gridW = Math.floor(W / CELL_SIZE);
+  gridH = Math.floor(H / CELL_SIZE);
+}
+
+// --- Grid helpers ---
+function initGrid() {
+  grid = new Uint8Array(gridW * gridH);
+  // Border walls
+  for (let x = 0; x < gridW; x++) {
+    grid[x] = 1;
+    grid[x + (gridH - 1) * gridW] = 1;
+  }
+  for (let y = 0; y < gridH; y++) {
+    grid[y * gridW] = 1;
+    grid[(gridW - 1) + y * gridW] = 1;
+  }
+  // Top UI area filled
+  const uiRows = Math.ceil(UI_TOP_PAD / CELL_SIZE);
+  for (let y = 0; y < uiRows; y++) {
+    for (let x = 0; x < gridW; x++) {
+      grid[x + y * gridW] = 1;
+    }
+  }
+  totalCells = 0;
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] === 0) totalCells++;
+  }
+}
+
+function gridIdx(gx, gy) {
+  return gx + gy * gridW;
+}
+
+function isWallOrFilled(gx, gy) {
+  if (gx < 0 || gx >= gridW || gy < 0 || gy >= gridH) return true;
+  const v = grid[gridIdx(gx, gy)];
+  return v === 1 || v === 2;
+}
+
+// --- Flood fill to calculate filled area ---
+function recalcFill() {
+  // Mark all open cells as potentially fillable (temporarily set to 2)
+  // Then flood fill from each ball position back to 0
+  // Remaining 2s become filled
+
+  // Step 1: mark all 0 as 2
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] === 0) grid[i] = 2;
+  }
+
+  // Step 2: flood fill from each ball to reclaim as 0
+  for (const ball of balls) {
+    const bx = Math.floor(ball.x / CELL_SIZE);
+    const by = Math.floor(ball.y / CELL_SIZE);
+    floodFill(bx, by);
+  }
+
+  // Step 3: count filled
+  let filled = 0;
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] === 2) filled++;
+  }
+  fillPercent = totalCells > 0 ? Math.round((filled / totalCells) * 100) : 0;
+}
+
+function floodFill(sx, sy) {
+  if (sx < 0 || sx >= gridW || sy < 0 || sy >= gridH) return;
+  if (grid[gridIdx(sx, sy)] !== 2) return;
+
+  const stack = [sx, sy];
+  while (stack.length > 0) {
+    const y = stack.pop();
+    const x = stack.pop();
+    if (x < 0 || x >= gridW || y < 0 || y >= gridH) continue;
+    const idx = gridIdx(x, y);
+    if (grid[idx] !== 2) continue;
+    grid[idx] = 0;
+    stack.push(x - 1, y);
+    stack.push(x + 1, y);
+    stack.push(x, y - 1);
+    stack.push(x, y + 1);
+  }
+}
+
+// --- Balls ---
+function spawnBalls(count) {
+  balls = [];
+  const speed = BALL_SPEED_BASE + (level - 1) * BALL_SPEED_INCREMENT;
+  const safeMargin = BALL_RADIUS * 3;
+  const minX = safeMargin + CELL_SIZE;
+  const maxX = W - safeMargin - CELL_SIZE;
+  const minY = UI_TOP_PAD + safeMargin + CELL_SIZE;
+  const maxY = H - safeMargin - CELL_SIZE;
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    balls.push({
+      x: minX + Math.random() * (maxX - minX),
+      y: minY + Math.random() * (maxY - minY),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: BALL_RADIUS,
+      hue: (i * 47 + 200) % 360
+    });
+  }
+}
+
+function updateBalls() {
+  for (const ball of balls) {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Bounce off grid walls/filled areas
+    const gx = Math.floor(ball.x / CELL_SIZE);
+    const gy = Math.floor(ball.y / CELL_SIZE);
+    const r = Math.ceil(ball.radius / CELL_SIZE) + 1;
+
+    // Check horizontal bounce
+    const nextGx = Math.floor((ball.x + Math.sign(ball.vx) * ball.radius) / CELL_SIZE);
+    if (isWallOrFilled(nextGx, gy)) {
+      ball.vx = -ball.vx;
+      ball.x += ball.vx;
+    }
+
+    // Check vertical bounce
+    const nextGy = Math.floor((ball.y + Math.sign(ball.vy) * ball.radius) / CELL_SIZE);
+    if (isWallOrFilled(gx, nextGy)) {
+      ball.vy = -ball.vy;
+      ball.y += ball.vy;
+    }
+
+    // Safety clamp
+    const margin = ball.radius + CELL_SIZE;
+    if (ball.x < margin) { ball.x = margin; ball.vx = Math.abs(ball.vx); }
+    if (ball.x > W - margin) { ball.x = W - margin; ball.vx = -Math.abs(ball.vx); }
+    if (ball.y < UI_TOP_PAD + margin) { ball.y = UI_TOP_PAD + margin; ball.vy = Math.abs(ball.vy); }
+    if (ball.y > H - margin) { ball.y = H - margin; ball.vy = -Math.abs(ball.vy); }
+  }
+}
+
+// --- Active Walls ---
+function createWall(px, py, direction) {
+  const gx = Math.floor(px / CELL_SIZE);
+  const gy = Math.floor(py / CELL_SIZE);
+
+  // Don't place on existing wall
+  if (isWallOrFilled(gx, gy)) return;
+
+  activeWalls.push({
+    originX: gx,
+    originY: gy,
+    direction: direction, // 'h' or 'v'
+    headA: direction === 'h' ? gx : gy,  // expanding toward min
+    headB: direction === 'h' ? gx : gy,  // expanding toward max
+    doneA: false,
+    doneB: false,
+    cells: [],
+    alive: true
+  });
+}
+
+function updateWalls() {
+  for (const wall of activeWalls) {
+    if (!wall.alive) continue;
+
+    for (let step = 0; step < WALL_SPEED; step++) {
+      // Expand head A (toward 0)
+      if (!wall.doneA) {
+        wall.headA--;
+        const gx = wall.direction === 'h' ? wall.headA : wall.originX;
+        const gy = wall.direction === 'h' ? wall.originY : wall.headA;
+        if (gx < 0 || gy < 0 || gx >= gridW || gy >= gridH || isWallOrFilled(gx, gy)) {
+          wall.doneA = true;
+        } else {
+          grid[gridIdx(gx, gy)] = 1;
+          wall.cells.push(gridIdx(gx, gy));
+        }
+      }
+
+      // Expand head B (toward max)
+      if (!wall.doneB) {
+        wall.headB++;
+        const gx = wall.direction === 'h' ? wall.headB : wall.originX;
+        const gy = wall.direction === 'h' ? wall.originY : wall.headB;
+        if (gx < 0 || gy < 0 || gx >= gridW || gy >= gridH || isWallOrFilled(gx, gy)) {
+          wall.doneB = true;
+        } else {
+          grid[gridIdx(gx, gy)] = 1;
+          wall.cells.push(gridIdx(gx, gy));
+        }
+      }
+    }
+
+    // Mark origin
+    if (wall.cells.length === 0 || !wall.cells.includes(gridIdx(wall.originX, wall.originY))) {
+      if (!isWallOrFilled(wall.originX, wall.originY)) {
+        grid[gridIdx(wall.originX, wall.originY)] = 1;
+        wall.cells.push(gridIdx(wall.originX, wall.originY));
+      }
+    }
+
+    // Check ball collision with active wall cells
+    let hit = false;
+    for (const ball of balls) {
+      for (const cellIdx of wall.cells) {
+        const cx = (cellIdx % gridW) * CELL_SIZE + CELL_SIZE / 2;
+        const cy = Math.floor(cellIdx / gridW) * CELL_SIZE + CELL_SIZE / 2;
+        const dx = ball.x - cx;
+        const dy = ball.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < ball.radius + CELL_SIZE) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit) break;
+    }
+
+    if (hit) {
+      // Remove wall cells
+      for (const cellIdx of wall.cells) {
+        grid[cellIdx] = 0;
+      }
+      wall.alive = false;
+      lives--;
+      updateUI();
+      if (lives <= 0) {
+        gameOver();
+        return;
+      }
+      // Flash effect
+      flashScreen('#ff4466');
+      continue;
+    }
+
+    // Check if wall is complete
+    if (wall.doneA && wall.doneB) {
+      wall.alive = false;
+      recalcFill();
+      score += wall.cells.length;
+      updateUI();
+      if (fillPercent >= TARGET_FILL) {
+        levelComplete();
+        return;
+      }
+    }
+  }
+
+  activeWalls = activeWalls.filter(w => w.alive);
+}
+
+// --- Flash effect ---
+let flashColor = null;
+let flashAlpha = 0;
+
+function flashScreen(color) {
+  flashColor = color;
+  flashAlpha = 0.3;
+}
+
+// --- Rendering ---
+function draw() {
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw grid
+  const imageData = ctx.createImageData(W, H);
+  const data = imageData.data;
+
+  for (let gy = 0; gy < gridH; gy++) {
+    for (let gx = 0; gx < gridW; gx++) {
+      const val = grid[gridIdx(gx, gy)];
+      if (val === 0) continue;
+
+      const px = gx * CELL_SIZE;
+      const py = gy * CELL_SIZE;
+
+      let r, g, b;
+      if (val === 1) {
+        // Wall - cyan glow
+        r = 0; g = 180; b = 160;
+      } else {
+        // Filled - darker teal
+        r = 5; g = 40; b = 50;
+      }
+
+      for (let dy = 0; dy < CELL_SIZE && py + dy < H; dy++) {
+        for (let dx = 0; dx < CELL_SIZE && px + dx < W; dx++) {
+          const idx = ((py + dy) * W + (px + dx)) * 4;
+          data[idx] = r;
+          data[idx + 1] = g;
+          data[idx + 2] = b;
+          data[idx + 3] = 255;
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  // Draw active wall heads (bright glow)
+  for (const wall of activeWalls) {
+    if (!wall.alive) continue;
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#00ffcc';
+    for (const cellIdx of wall.cells) {
+      const cx = (cellIdx % gridW) * CELL_SIZE;
+      const cy = Math.floor(cellIdx / gridW) * CELL_SIZE;
+      ctx.fillRect(cx, cy, CELL_SIZE, CELL_SIZE);
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // Draw balls
+  for (const ball of balls) {
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${ball.hue}, 100%, 65%)`;
+    ctx.shadowColor = `hsl(${ball.hue}, 100%, 65%)`;
+    ctx.shadowBlur = 16;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Inner highlight
+    ctx.beginPath();
+    ctx.arc(ball.x - 2, ball.y - 2, ball.radius * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${ball.hue}, 100%, 90%, 0.5)`;
+    ctx.fill();
+  }
+
+  // Flash overlay
+  if (flashAlpha > 0) {
+    ctx.fillStyle = flashColor + Math.floor(flashAlpha * 255).toString(16).padStart(2, '0');
+    ctx.fillRect(0, 0, W, H);
+    flashAlpha -= 0.02;
+  }
+}
+
+// --- UI ---
+function updateUI() {
+  levelDisplay.textContent = `LEVEL ${level}`;
+  fillDisplay.textContent = `${fillPercent}%`;
+  let hearts = '';
+  for (let i = 0; i < lives; i++) hearts += '\u2665';
+  livesDisplay.textContent = hearts;
+}
+
+// --- Game flow ---
+function startLevel() {
+  resize();
+  initGrid();
+  const ballCount = level + 1;
+  spawnBalls(ballCount);
+  activeWalls = [];
+  fillPercent = 0;
+  updateUI();
+  gameRunning = true;
+  overlay.classList.add('hidden');
+  lastTime = performance.now();
+  if (animFrame) cancelAnimationFrame(animFrame);
+  gameLoop();
+}
+
+function levelComplete() {
+  gameRunning = false;
+  score += fillPercent * 10 + lives * 50;
+  level++;
+  flashScreen('#00ffcc');
+  setTimeout(() => {
+    showOverlay(
+      `LEVEL ${level - 1} CLEAR!`,
+      `Score: ${score}`,
+      `${fillPercent}% filled`,
+      level <= 20 ? 'NEXT LEVEL' : 'YOU WIN!'
+    );
+  }, 500);
+}
+
+function gameOver() {
+  gameRunning = false;
+  setTimeout(() => {
+    showOverlay(
+      'GAME OVER',
+      `Final Score: ${score}`,
+      `Reached Level ${level}`,
+      'TRY AGAIN'
+    );
+    level = 1;
+    lives = 3;
+    score = 0;
+  }, 500);
+}
+
+function showOverlay(title, line1, line2, btnText) {
+  overlay.innerHTML = `
+    <h2>${title}</h2>
+    <p class="score-line">${line1}</p>
+    <p>${line2}</p>
+    <button id="startBtn">${btnText}</button>
+  `;
+  overlay.classList.remove('hidden');
+  document.getElementById('startBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    startLevel();
+  });
+  document.getElementById('startBtn').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    startLevel();
+  });
+}
+
+// --- Game loop ---
+function gameLoop() {
+  if (!gameRunning) return;
+
+  updateBalls();
+  updateWalls();
+
+  if (gameRunning) {
+    draw();
+    animFrame = requestAnimationFrame(gameLoop);
+  }
+}
+
+// --- Touch / Mouse input ---
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (!gameRunning) return;
+  const t = e.touches[0];
+  touchStart = { x: t.clientX, y: t.clientY, time: Date.now() };
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!touchStart || !gameRunning) return;
+  const t = e.touches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  // Show swipe direction hint
+  if (dist > 15) {
+    const dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    showSwipeHint(touchStart.x, touchStart.y, dir);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  hideSwipeHint();
+  if (!touchStart || !gameRunning) return;
+
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  let direction;
+  if (dist < 10) {
+    // Tap with no swipe - default to horizontal
+    direction = 'h';
+  } else {
+    direction = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  }
+
+  createWall(touchStart.x, touchStart.y, direction);
+  touchStart = null;
+}, { passive: false });
+
+// Mouse fallback for desktop testing
+let mouseDown = false;
+let mouseStart = null;
+
+canvas.addEventListener('mousedown', (e) => {
+  if (!gameRunning) return;
+  mouseDown = true;
+  mouseStart = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!mouseDown || !mouseStart || !gameRunning) return;
+  const dx = e.clientX - mouseStart.x;
+  const dy = e.clientY - mouseStart.y;
+  if (Math.sqrt(dx * dx + dy * dy) > 15) {
+    const dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    showSwipeHint(mouseStart.x, mouseStart.y, dir);
+  }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (!mouseDown || !mouseStart || !gameRunning) return;
+  mouseDown = false;
+  hideSwipeHint();
+
+  const dx = e.clientX - mouseStart.x;
+  const dy = e.clientY - mouseStart.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  let direction;
+  if (dist < 10) {
+    direction = 'h';
+  } else {
+    direction = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  }
+
+  createWall(mouseStart.x, mouseStart.y, direction);
+  mouseStart = null;
+});
+
+// --- Swipe hint ---
+function showSwipeHint(x, y, dir) {
+  swipeHint.classList.add('visible');
+  swipeHint.style.left = x + 'px';
+  swipeHint.style.top = y + 'px';
+
+  if (dir === 'h') {
+    swipeLine.style.width = '60px';
+    swipeLine.style.height = '3px';
+    swipeLine.style.left = '-30px';
+    swipeLine.style.top = '-1px';
+  } else {
+    swipeLine.style.width = '3px';
+    swipeLine.style.height = '60px';
+    swipeLine.style.left = '-1px';
+    swipeLine.style.top = '-30px';
+  }
+}
+
+function hideSwipeHint() {
+  swipeHint.classList.remove('visible');
+}
+
+// --- Window events ---
+window.addEventListener('resize', () => {
+  if (!gameRunning) {
+    resize();
+  }
+});
+
+// --- Init ---
+resize();
+
+startBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  startLevel();
+});
+startBtn.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  startLevel();
+});
+</script>
+</body>
+</html>
