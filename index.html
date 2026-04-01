@@ -185,7 +185,7 @@
 
 <canvas id="gameCanvas"></canvas>
 
-<div id="ui">
+<div id="ui" style="display:none;">
   <span id="levelDisplay">LVL 01</span>
   <span id="fillDisplay">0%</span>
   <span class="timer" id="timerDisplay">1:00</span>
@@ -200,8 +200,8 @@
     &gt; AVOID BALL CONTACT<br>
     &gt; BEAT THE CLOCK FOR BONUS</p>
   <button id="startBtn">START</button>
-  <p id="brandLine" style="position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 13px; letter-spacing: 2px; color: rgba(85, 187, 255, 0.4); font-family: 'Courier New', monospace;">by project(u)</p>
 </div>
+<p id="brandLine" style="position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 13px; letter-spacing: 2px; color: rgba(85, 187, 255, 0.4); font-family: 'Courier New', monospace; z-index: 25; margin: 0; pointer-events: none;">by project(u)</p>
 
 <div class="swipe-hint" id="swipeHint">
   <div class="line"></div>
@@ -369,11 +369,12 @@ function spawnBalls(count) {
   }
 }
 
-function updateBalls() {
+function updateBalls(dt) {
+  const scale = dt * 60; // normalize to 60fps
   for (const ball of balls) {
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-    ball.angle += ball.spinSpeed;
+    ball.x += ball.vx * scale;
+    ball.y += ball.vy * scale;
+    ball.angle += ball.spinSpeed * scale;
 
     const r = ball.radius;
 
@@ -432,15 +433,20 @@ function createWall(px, py, direction) {
     cells: [],
     cellAge: [],       // frame when each cell was added (for wave animation)
     birthFrame: frameCount,
-    alive: true
+    alive: true,
+    stepAccum: 0
   });
 }
 
-function updateWalls() {
+function updateWalls(dt) {
+  const scale = dt * 60;
   for (const wall of activeWalls) {
     if (!wall.alive) continue;
 
-    for (let step = 0; step < WALL_SPEED; step++) {
+    wall.stepAccum += WALL_SPEED * scale;
+    const steps = Math.floor(wall.stepAccum);
+    wall.stepAccum -= steps;
+    for (let step = 0; step < steps; step++) {
       if (!wall.doneA) {
         wall.headA--;
         const gx = wall.direction === 'h' ? wall.headA : wall.originX;
@@ -889,6 +895,8 @@ function startLevel() {
   updateUI();
   gameRunning = true;
   if (menuAnimFrame) { cancelAnimationFrame(menuAnimFrame); menuAnimFrame = null; }
+  document.getElementById('ui').style.display = '';
+  document.getElementById('brandLine').style.display = 'none';
   overlay.classList.add('hidden');
   lastTime = performance.now();
   if (animFrame) cancelAnimationFrame(animFrame);
@@ -926,6 +934,8 @@ function gameOver() {
 }
 
 function showGameOverOverlay(finalScore, finalLevel) {
+  document.getElementById('ui').style.display = 'none';
+  document.getElementById('brandLine').style.display = '';
   const highScore = isHighScore(finalScore);
   let html = `
     <canvas id="gameOverTitle" style="margin-bottom:12px; image-rendering:pixelated; image-rendering:crisp-edges;"></canvas>
@@ -998,10 +1008,12 @@ function gameLoop(timestamp) {
   if (!gameRunning) return;
   frameCount++;
 
-  const delta = (timestamp - lastTime) / 1000;
+  if (!timestamp) timestamp = lastTime;
+  const rawDelta = (timestamp - lastTime) / 1000;
   lastTime = timestamp;
-  if (delta < 1) {
-    timeRemaining -= delta;
+  const delta = Math.min(rawDelta, 0.1) || (1/60); // cap to avoid jumps; fallback to 60fps
+  if (rawDelta < 1) {
+    timeRemaining -= rawDelta;
   }
   if (timeRemaining <= 0) {
     timeRemaining = 0;
@@ -1011,8 +1023,8 @@ function gameLoop(timestamp) {
   }
   updateUI();
 
-  updateBalls();
-  updateWalls();
+  updateBalls(delta);
+  updateWalls(delta);
 
   if (gameRunning) {
     draw();
@@ -1232,14 +1244,20 @@ const menuBall = {
   spinSpeed: 0.015
 };
 let menuAnimFrame = null;
+let menuLastTime = performance.now();
 
-function menuLoop() {
+function menuLoop(timestamp) {
   if (gameRunning) { menuAnimFrame = null; return; }
 
+  if (!timestamp) timestamp = menuLastTime;
+  const dt = Math.min((timestamp - menuLastTime) / 1000, 0.1) || (1/60);
+  menuLastTime = timestamp;
+  const scale = dt * 60;
+
   // Update menu ball
-  menuBall.x += menuBall.vx;
-  menuBall.y += menuBall.vy;
-  menuBall.angle += menuBall.spinSpeed;
+  menuBall.x += menuBall.vx * scale;
+  menuBall.y += menuBall.vy * scale;
+  menuBall.angle += menuBall.spinSpeed * scale;
 
   const margin = MENU_BALL_RADIUS + 4;
   if (menuBall.x < margin || menuBall.x > W - margin) menuBall.vx = -menuBall.vx;
