@@ -19,19 +19,20 @@
   #ui {
     position: fixed; top: 0; left: 0; right: 0;
     display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 16px;
-    color: #33ff33; font-size: 14px; font-weight: bold;
-    letter-spacing: 2px;
+    padding: 14px 20px;
+    color: #33ff33; font-size: 22px; font-weight: bold;
+    letter-spacing: 3px;
     z-index: 10;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.97), rgba(0,0,0,0.6), transparent);
     pointer-events: none;
     text-transform: uppercase;
   }
-  #ui span { text-shadow: 0 0 8px #33ff3388, 0 0 2px #33ff33; }
-  .timer { color: #33ff33; text-shadow: 0 0 8px #33ff3388, 0 0 2px #33ff33; }
-  .timer.urgent { color: #ff3333; text-shadow: 0 0 8px #ff333388, 0 0 2px #ff3333; animation: pulse 0.5s ease-in-out infinite alternate; }
+  #ui span { text-shadow: 0 0 12px #33ff3388, 0 0 4px #33ff33, 0 0 20px #33ff3344; }
+  .timer { color: #33ff33; text-shadow: 0 0 12px #33ff3388, 0 0 4px #33ff33; }
+  .timer.urgent { color: #ff3333; text-shadow: 0 0 12px #ff333388, 0 0 4px #ff3333; animation: pulse 0.5s ease-in-out infinite alternate; }
   @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
-  .lives { color: #ff3333; text-shadow: 0 0 8px #ff333388, 0 0 2px #ff3333; }
+  .lives-container { display: flex; gap: 4px; align-items: center; }
+  .lives { color: #ff3333; text-shadow: 0 0 12px #ff333388, 0 0 4px #ff3333; }
   #gameCanvas {
     display: block;
     position: fixed;
@@ -79,6 +80,75 @@
     margin: 8px 0;
     letter-spacing: 2px;
   }
+  .leaderboard {
+    margin: 12px 0;
+    width: 100%;
+    max-width: 280px;
+  }
+  .leaderboard h3 {
+    font-size: 14px;
+    color: #33ff33;
+    text-shadow: 0 0 8px #33ff3366;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+  .leaderboard ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .leaderboard li {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: #22aa22;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #1a3a1a;
+  }
+  .leaderboard li.current {
+    color: #33ff33;
+    text-shadow: 0 0 6px #33ff3366;
+    background: rgba(51, 255, 51, 0.05);
+  }
+  .leaderboard li .rank { color: #33ff33; min-width: 28px; }
+  .leaderboard li .lb-score { color: inherit; }
+  .leaderboard li .lb-level { color: #226622; font-size: 11px; }
+  .name-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+    pointer-events: auto;
+  }
+  .name-input-row input {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: #33ff33;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #33ff33;
+    padding: 8px 12px;
+    width: 140px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    outline: none;
+  }
+  .name-input-row input::placeholder {
+    color: #1a5a1a;
+  }
+  .name-input-row button {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #0a0a0a;
+    background: #33ff33;
+    border: 2px solid #33ff33;
+    padding: 8px 14px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
   #overlay button {
     margin-top: 20px;
     padding: 14px 40px;
@@ -123,7 +193,7 @@
   <span id="levelDisplay">LVL 01</span>
   <span id="fillDisplay">000%</span>
   <span class="timer" id="timerDisplay">1:00</span>
-  <span class="lives" id="livesDisplay">&#9829;&#9829;&#9829;</span>
+  <canvas class="lives" id="livesDisplay" width="90" height="28"></canvas>
 </div>
 
 <div id="overlay">
@@ -295,7 +365,9 @@ function spawnBalls(count) {
       y: minY + Math.random() * (maxY - minY),
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      radius: BALL_RADIUS
+      radius: BALL_RADIUS,
+      angle: Math.random() * Math.PI * 2,
+      spinSpeed: (0.02 + Math.random() * 0.02) * (Math.random() < 0.5 ? 1 : -1)
     });
   }
 }
@@ -304,6 +376,7 @@ function updateBalls() {
   for (const ball of balls) {
     ball.x += ball.vx;
     ball.y += ball.vy;
+    ball.angle += ball.spinSpeed;
 
     const gx = Math.floor(ball.x / CELL_SIZE);
     const gy = Math.floor(ball.y / CELL_SIZE);
@@ -500,47 +573,63 @@ function draw() {
       const wallInfo = activeWallCells.get(idx);
 
       if (wallInfo) {
-        // === ACTIVE WALL ANIMATION ===
+        // === ACTIVE WALL ANIMATION (exaggerated) ===
         const age = wallInfo.age;
         const dist = wallInfo.distFromOrigin;
 
-        // Wave intensity: newer cells and cells closer to origin glow brighter
-        const wavePulse = Math.max(0, 1 - age / 30); // fades over 30 frames
-        const proximityGlow = Math.max(0, 1 - dist / 40); // brighter near origin
+        // Wave intensity: newer cells glow much brighter, slower fade
+        const wavePulse = Math.max(0, 1 - age / 50); // slower fade over 50 frames
+        const proximityGlow = Math.max(0, 1 - dist / 60); // wider glow range
+        const sparkle = Math.sin(frameCount * 0.3 + dist * 0.5) * 0.15; // shimmering wave
 
-        // Combined intensity
-        const intensity = Math.min(1, wavePulse * 0.7 + proximityGlow * 0.5);
+        // Combined intensity - much stronger
+        const intensity = Math.min(1, wavePulse * 0.9 + proximityGlow * 0.6 + sparkle);
 
-        // Cell size: slightly larger near origin and when new
-        const sizeBoost = Math.max(0, (1 - dist / 20) * wavePulse) * 3;
+        // Cell size: much larger near origin and when new
+        const sizeBoost = Math.max(0, (1 - dist / 15) * wavePulse) * 6;
         const cellDrawSize = innerSize + sizeBoost;
         const offset = -sizeBoost / 2;
 
-        // Color: interpolate from bright white-green to normal wall green
+        // Color: interpolate from bright white to normal wall green
         const r = Math.floor(30 + 225 * intensity);
         const g = Math.floor(200 + 55 * intensity);
         const b = Math.floor(30 + 225 * intensity);
 
-        // Glow effect (draw larger rect behind)
-        if (intensity > 0.2) {
-          const glowSize = cellDrawSize + 4 * intensity;
-          const glowOffset = offset - 2 * intensity;
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${intensity * 0.3})`;
+        // Outer glow halo (large, soft)
+        if (intensity > 0.1) {
+          const haloSize = cellDrawSize + 12 * intensity;
+          const haloOffset = offset - 6 * intensity;
+          ctx.fillStyle = `rgba(50, 255, 50, ${intensity * 0.12})`;
+          ctx.fillRect(px + haloOffset - 4, py + haloOffset - 4, haloSize + 8, haloSize + 8);
+        }
+
+        // Inner glow
+        if (intensity > 0.15) {
+          const glowSize = cellDrawSize + 6 * intensity;
+          const glowOffset = offset - 3 * intensity;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${intensity * 0.4})`;
           ctx.fillRect(px + glowOffset - 2, py + glowOffset - 2, glowSize + 4, glowSize + 4);
         }
 
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(px + offset, py + offset, cellDrawSize, cellDrawSize);
 
-        // Bright center pixel
-        if (intensity > 0.3) {
-          ctx.fillStyle = `rgba(200, 255, 200, ${intensity * 0.8})`;
-          const dotSize = 2 + intensity * 2;
+        // Bright center pixel with flare
+        if (intensity > 0.2) {
+          ctx.fillStyle = `rgba(220, 255, 220, ${intensity * 0.9})`;
+          const dotSize = 2 + intensity * 4;
           ctx.fillRect(
             px + CELL_SIZE / 2 - dotSize / 2,
             py + CELL_SIZE / 2 - dotSize / 2,
             dotSize, dotSize
           );
+        }
+
+        // Leading edge spark effect for very new cells
+        if (age < 6) {
+          const sparkAlpha = (1 - age / 6) * 0.7;
+          ctx.fillStyle = `rgba(255, 255, 255, ${sparkAlpha})`;
+          ctx.fillRect(px - 1, py - 1, cellDrawSize + 2, cellDrawSize + 2);
         }
 
       } else if (val === 1) {
@@ -560,20 +649,21 @@ function draw() {
     }
   }
 
-  // Draw origin point glow for active walls
+  // Draw origin point glow for active walls (exaggerated)
   for (const wall of activeWalls) {
     if (!wall.alive) continue;
     const age = frameCount - wall.birthFrame;
-    const pulseIntensity = Math.max(0, 1 - age / 60);
+    const pulseIntensity = Math.max(0, 1 - age / 90);
     if (pulseIntensity <= 0) continue;
 
     const ox = wall.originX * CELL_SIZE + CELL_SIZE / 2;
     const oy = wall.originY * CELL_SIZE + CELL_SIZE / 2;
+    const throb = 0.7 + 0.3 * Math.sin(frameCount * 0.15);
 
-    // Pulsing glow rings at origin
-    for (let ring = 3; ring >= 1; ring--) {
-      const ringSize = (CELL_SIZE * ring) * (1 + pulseIntensity * 0.5);
-      const ringAlpha = pulseIntensity * 0.15 / ring;
+    // Expanding shockwave rings
+    for (let ring = 5; ring >= 1; ring--) {
+      const ringSize = (CELL_SIZE * ring * 1.5) * (1 + pulseIntensity * throb);
+      const ringAlpha = pulseIntensity * 0.2 / ring;
       ctx.fillStyle = `rgba(100, 255, 100, ${ringAlpha})`;
       ctx.fillRect(
         ox - ringSize / 2, oy - ringSize / 2,
@@ -581,60 +671,83 @@ function draw() {
       );
     }
 
-    // Bright center
-    const centerSize = CELL_SIZE + pulseIntensity * 4;
-    ctx.fillStyle = `rgba(200, 255, 200, ${pulseIntensity * 0.9})`;
+    // Bright center with throb
+    const centerSize = CELL_SIZE * 1.5 + pulseIntensity * 8 * throb;
+    ctx.fillStyle = `rgba(220, 255, 220, ${pulseIntensity * 0.95})`;
     ctx.fillRect(
       ox - centerSize / 2, oy - centerSize / 2,
       centerSize, centerSize
     );
   }
 
-  // Draw balls as pixelated squares
+  // Draw balls as pokeball-style spinning spheres
   for (const ball of balls) {
-    // Snap ball position to grid for pixel look
-    const bx = Math.round(ball.x / CELL_SIZE) * CELL_SIZE;
-    const by = Math.round(ball.y / CELL_SIZE) * CELL_SIZE;
-    const size = Math.ceil(ball.radius * 2 / CELL_SIZE) * CELL_SIZE;
+    const bx = ball.x;
+    const by = ball.y;
+    const r = ball.radius + 2; // slightly larger for more resolution
+    const cells = Math.ceil(r / CELL_SIZE) + 1;
+    const angle = ball.angle;
 
     // Outer glow
     const glowPulse = 0.5 + 0.5 * Math.sin(frameCount * 0.1 + ball.x * 0.01);
-    ctx.fillStyle = `rgba(30, 180, 30, ${0.15 + glowPulse * 0.1})`;
-    ctx.fillRect(
-      bx - size / 2 - CELL_SIZE, by - size / 2 - CELL_SIZE,
-      size + CELL_SIZE * 2, size + CELL_SIZE * 2
-    );
+    ctx.fillStyle = `rgba(30, 180, 30, ${0.12 + glowPulse * 0.08})`;
+    const glowR = r + CELL_SIZE * 2;
+    ctx.fillRect(bx - glowR, by - glowR, glowR * 2, glowR * 2);
 
-    // Draw ball as pixel grid (cross/diamond shape)
-    const cells = Math.ceil(ball.radius / CELL_SIZE);
+    // Draw pixel-by-pixel circle with pokeball halves
     for (let dy = -cells; dy <= cells; dy++) {
       for (let dx = -cells; dx <= cells; dx++) {
-        const dist = Math.abs(dx) + Math.abs(dy); // manhattan distance for diamond
-        if (dist > cells + 1) continue;
+        const px = dx * CELL_SIZE;
+        const py = dy * CELL_SIZE;
+        const dist = Math.sqrt(px * px + py * py);
+        if (dist > r + CELL_SIZE * 0.5) continue;
 
-        const cx = bx + dx * CELL_SIZE;
-        const cy = by + dy * CELL_SIZE;
+        const cx = Math.round(bx / CELL_SIZE) * CELL_SIZE + dx * CELL_SIZE;
+        const cy = Math.round(by / CELL_SIZE) * CELL_SIZE + dy * CELL_SIZE;
 
-        if (dist <= cells - 1) {
-          // Core - bright green
-          const flick = 0.9 + Math.random() * 0.1;
-          ctx.fillStyle = `rgb(${Math.floor(80 * flick)}, ${Math.floor(255 * flick)}, ${Math.floor(80 * flick)})`;
-          ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
-        } else if (dist <= cells) {
-          // Edge - medium green
-          ctx.fillStyle = `rgb(30, 160, 30)`;
-          ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
+        // Rotate the point to determine which half it's on
+        const rotX = px * Math.cos(angle) - py * Math.sin(angle);
+        const rotY = px * Math.sin(angle) + py * Math.cos(angle);
+
+        const isEdge = dist > r - CELL_SIZE;
+        const isBand = Math.abs(rotY) < CELL_SIZE * 1.2; // center band (dividing line)
+        const isTopHalf = rotY < -CELL_SIZE * 1.2;
+
+        const flick = 0.92 + Math.random() * 0.08;
+
+        if (isEdge) {
+          // Dark outline
+          ctx.fillStyle = `rgb(${Math.floor(15 * flick)}, ${Math.floor(80 * flick)}, ${Math.floor(15 * flick)})`;
+        } else if (isBand) {
+          // Center band - dark dividing line with button
+          if (Math.abs(px) < CELL_SIZE * 1.2 && Math.abs(rotY) < CELL_SIZE * 1.2) {
+            // Center button
+            ctx.fillStyle = `rgb(${Math.floor(200 * flick)}, ${Math.floor(255 * flick)}, ${Math.floor(200 * flick)})`;
+          } else {
+            ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(100 * flick)}, ${Math.floor(20 * flick)})`;
+          }
+        } else if (isTopHalf) {
+          // Top half - bright green (like red part of pokeball)
+          const shade = Math.max(0.6, 1 - dist / r * 0.4);
+          ctx.fillStyle = `rgb(${Math.floor(60 * shade * flick)}, ${Math.floor(255 * shade * flick)}, ${Math.floor(60 * shade * flick)})`;
         } else {
-          // Outer edge - dim
-          ctx.fillStyle = `rgba(20, 100, 20, 0.5)`;
-          ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
+          // Bottom half - dim green (like white part of pokeball)
+          const shade = Math.max(0.6, 1 - dist / r * 0.3);
+          ctx.fillStyle = `rgb(${Math.floor(15 * shade * flick)}, ${Math.floor(80 * shade * flick)}, ${Math.floor(15 * shade * flick)})`;
         }
+
+        ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
       }
     }
 
-    // Center bright pixel
-    ctx.fillStyle = '#ccffcc';
-    ctx.fillRect(bx, by, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
+    // Highlight pixel (top-left of ball, rotates slightly)
+    const hlX = Math.round((bx - r * 0.35) / CELL_SIZE) * CELL_SIZE;
+    const hlY = Math.round((by - r * 0.45) / CELL_SIZE) * CELL_SIZE;
+    ctx.fillStyle = 'rgba(200, 255, 200, 0.7)';
+    ctx.fillRect(hlX, hlY, CELL_SIZE, CELL_SIZE);
+    ctx.fillStyle = 'rgba(200, 255, 200, 0.4)';
+    ctx.fillRect(hlX + CELL_SIZE, hlY, CELL_SIZE, CELL_SIZE);
+    ctx.fillRect(hlX, hlY + CELL_SIZE, CELL_SIZE, CELL_SIZE);
   }
 
   // Scanline effect
@@ -658,6 +771,42 @@ function draw() {
   }
 }
 
+// --- 8-bit pixel heart ---
+// 9x8 pixel heart bitmap
+const HEART_BITMAP = [
+  [0,1,1,0,0,0,1,1,0],
+  [1,1,1,1,0,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1],
+  [0,1,1,1,1,1,1,1,0],
+  [0,0,1,1,1,1,1,0,0],
+  [0,0,0,1,1,1,0,0,0],
+  [0,0,0,0,1,0,0,0,0],
+];
+
+function drawPixelHeart(ctx, x, y, pixSize, filled) {
+  for (let row = 0; row < HEART_BITMAP.length; row++) {
+    for (let col = 0; col < HEART_BITMAP[row].length; col++) {
+      if (HEART_BITMAP[row][col] === 1) {
+        if (filled) {
+          // Bright red with highlight on top-left
+          if (row <= 2 && col >= 1 && col <= 3) {
+            ctx.fillStyle = '#ff6666'; // highlight
+          } else {
+            ctx.fillStyle = '#ff2222';
+          }
+        } else {
+          ctx.fillStyle = '#441111'; // empty/lost heart
+        }
+        ctx.fillRect(x + col * pixSize, y + row * pixSize, pixSize, pixSize);
+      }
+    }
+  }
+}
+
+const livesCanvas = document.getElementById('livesDisplay');
+const livesCtx = livesCanvas.getContext('2d');
+
 // --- UI ---
 function updateUI() {
   levelDisplay.textContent = `LVL ${String(level).padStart(2, '0')}`;
@@ -666,9 +815,58 @@ function updateUI() {
   const secs = Math.floor(timeRemaining % 60);
   timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
   timerDisplay.classList.toggle('urgent', timeRemaining <= 10);
-  let hearts = '';
-  for (let i = 0; i < lives; i++) hearts += '\u2665';
-  livesDisplay.textContent = hearts;
+
+  // Draw 8-bit hearts
+  const pxSize = 3;
+  const heartW = 9 * pxSize;
+  const heartH = 8 * pxSize;
+  const gap = 4;
+  const maxLives = 3;
+  livesCanvas.width = maxLives * (heartW + gap) - gap;
+  livesCanvas.height = heartH;
+  livesCtx.clearRect(0, 0, livesCanvas.width, livesCanvas.height);
+  for (let i = 0; i < maxLives; i++) {
+    drawPixelHeart(livesCtx, i * (heartW + gap), 0, pxSize, i < lives);
+  }
+}
+
+// --- Leaderboard ---
+const MAX_LEADERBOARD = 5;
+
+function getLeaderboard() {
+  try {
+    return JSON.parse(localStorage.getItem('wallball_leaderboard') || '[]');
+  } catch { return []; }
+}
+
+function saveLeaderboard(board) {
+  localStorage.setItem('wallball_leaderboard', JSON.stringify(board));
+}
+
+function addToLeaderboard(name, score, lvl) {
+  const board = getLeaderboard();
+  board.push({ name: name.toUpperCase().slice(0, 6), score, level: lvl, date: Date.now() });
+  board.sort((a, b) => b.score - a.score);
+  if (board.length > MAX_LEADERBOARD) board.length = MAX_LEADERBOARD;
+  saveLeaderboard(board);
+  return board;
+}
+
+function renderLeaderboardHTML(currentScore) {
+  const board = getLeaderboard();
+  if (board.length === 0) return '';
+  let html = '<div class="leaderboard"><h3>// HIGH SCORES</h3><ol>';
+  board.forEach((entry, i) => {
+    const isCurrent = entry.score === currentScore ? ' current' : '';
+    html += `<li class="${isCurrent}"><span class="rank">${String(i + 1).padStart(2, '0')}.</span><span class="lb-score">${entry.name} - ${entry.score}</span><span class="lb-level">LVL ${entry.level}</span></li>`;
+  });
+  html += '</ol></div>';
+  return html;
+}
+
+function isHighScore(score) {
+  const board = getLeaderboard();
+  return board.length < MAX_LEADERBOARD || score > (board[board.length - 1]?.score || 0);
 }
 
 // --- Game flow ---
@@ -708,17 +906,61 @@ function levelComplete() {
 
 function gameOver() {
   gameRunning = false;
+  const finalScore = score;
+  const finalLevel = level;
   setTimeout(() => {
-    showOverlay(
-      '// GAME OVER',
-      `FINAL SCORE: ${score}`,
-      `REACHED LEVEL ${level}`,
-      'RETRY'
-    );
+    showGameOverOverlay(finalScore, finalLevel);
     level = 1;
     lives = 3;
     score = 0;
   }, 500);
+}
+
+function showGameOverOverlay(finalScore, finalLevel) {
+  const highScore = isHighScore(finalScore);
+  let html = `
+    <h2>// GAME OVER</h2>
+    <p class="score-line">FINAL SCORE: ${finalScore}</p>
+    <p>REACHED LEVEL ${finalLevel}</p>
+  `;
+
+  if (highScore && finalScore > 0) {
+    html += `
+      <p class="score-line" style="font-size:14px; color:#33ff33;">NEW HIGH SCORE!</p>
+      <div class="name-input-row">
+        <input type="text" id="nameInput" maxlength="6" placeholder="NAME" autocomplete="off" />
+        <button id="saveScoreBtn">SAVE</button>
+      </div>
+    `;
+  }
+
+  html += renderLeaderboardHTML(finalScore);
+  html += `<button id="startBtn">&gt; RETRY</button>`;
+
+  overlay.innerHTML = html;
+  overlay.classList.remove('hidden');
+
+  document.getElementById('startBtn').addEventListener('click', (e) => { e.preventDefault(); startLevel(); });
+  document.getElementById('startBtn').addEventListener('touchend', (e) => { e.preventDefault(); startLevel(); });
+
+  if (highScore && finalScore > 0) {
+    const nameInput = document.getElementById('nameInput');
+    const saveBtn = document.getElementById('saveScoreBtn');
+    nameInput.focus();
+
+    const doSave = () => {
+      const name = nameInput.value.trim() || 'AAA';
+      addToLeaderboard(name, finalScore, finalLevel);
+      // Re-render with updated board
+      const lbEl = overlay.querySelector('.leaderboard');
+      if (lbEl) lbEl.outerHTML = renderLeaderboardHTML(finalScore);
+      nameInput.parentElement.remove();
+    };
+
+    saveBtn.addEventListener('click', (e) => { e.preventDefault(); doSave(); });
+    saveBtn.addEventListener('touchend', (e) => { e.preventDefault(); doSave(); });
+    nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(); });
+  }
 }
 
 function showOverlay(title, line1, line2, btnText) {
