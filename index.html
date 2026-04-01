@@ -20,7 +20,7 @@
     position: fixed; top: 0; left: 0; right: 0;
     display: flex; justify-content: space-between; align-items: center;
     padding: 14px 20px;
-    color: #e0e0e0; font-size: 22px; font-weight: bold;
+    color: #e0e0e0; font-size: 28px; font-weight: bold;
     letter-spacing: 3px;
     z-index: 10;
     background: linear-gradient(to bottom, rgba(0,0,0,0.97), rgba(0,0,0,0.6), transparent);
@@ -576,11 +576,17 @@ function draw() {
     for (let gx = 0; gx < gridW; gx++) {
       const idx = gridIdx(gx, gy);
       const val = grid[idx];
-      if (val === 0) continue;
 
       const px = gx * CELL_SIZE;
       const py = gy * CELL_SIZE;
       const innerSize = CELL_SIZE - GRID_GAP;
+
+      // Open cells — draw blue tint (active play area)
+      if (val === 0) {
+        ctx.fillStyle = '#121e30';
+        ctx.fillRect(px, py, innerSize, innerSize);
+        continue;
+      }
 
       // Check if this is an active wall cell
       const wallInfo = activeWallCells.get(idx);
@@ -646,17 +652,30 @@ function draw() {
         }
 
       } else if (val === 1) {
-        // Normal wall - steel blue
-        const flicker = 0.9 + Math.random() * 0.1;
-        const r = Math.floor(30 * flicker);
-        const g = Math.floor(80 * flicker);
-        const b = Math.floor(140 * flicker);
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        // Check if wall borders any open cell — if not, it's interior to claimed area
+        const touchesOpen =
+          (gx > 0 && grid[gridIdx(gx-1, gy)] === 0) ||
+          (gx < gridW-1 && grid[gridIdx(gx+1, gy)] === 0) ||
+          (gy > 0 && grid[gridIdx(gx, gy-1)] === 0) ||
+          (gy < gridH-1 && grid[gridIdx(gx, gy+1)] === 0);
+
+        const uiRows = Math.ceil(UI_TOP_PAD / CELL_SIZE);
+        if (touchesOpen || gy < uiRows) {
+          // Visible wall - steel blue (always show UI top bar)
+          const flicker = 0.9 + Math.random() * 0.1;
+          const r = Math.floor(30 * flicker);
+          const g = Math.floor(80 * flicker);
+          const b = Math.floor(140 * flicker);
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        } else {
+          // Interior wall - blend with claimed area
+          ctx.fillStyle = '#040804';
+        }
         ctx.fillRect(px, py, innerSize, innerSize);
 
       } else {
-        // Filled area - dark blue
-        ctx.fillStyle = '#080c18';
+        // Filled area - black (claimed)
+        ctx.fillStyle = '#040804';
         ctx.fillRect(px, py, innerSize, innerSize);
       }
     }
