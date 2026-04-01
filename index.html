@@ -44,7 +44,7 @@
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(0, 0, 0, 0.8);
     z-index: 20;
     color: #e0e0e0;
     text-align: center;
@@ -200,6 +200,7 @@
     &gt; AVOID BALL CONTACT<br>
     &gt; BEAT THE CLOCK FOR BONUS</p>
   <button id="startBtn">START</button>
+  <p id="brandLine" style="position: fixed; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 13px; letter-spacing: 2px; color: rgba(85, 187, 255, 0.4); font-family: 'Courier New', monospace;">by project(u)</p>
 </div>
 
 <div class="swipe-hint" id="swipeHint">
@@ -532,6 +533,44 @@ function flashScreen(color) {
   flashAlpha = 0.3;
 }
 
+// --- Ball renderer (reusable) ---
+function drawBall(ball, radius) {
+  const bx = Math.round(ball.x / CELL_SIZE) * CELL_SIZE;
+  const by = Math.round(ball.y / CELL_SIZE) * CELL_SIZE;
+  const r = radius;
+  const cells = Math.ceil(r / CELL_SIZE) + 1;
+  const cosA = Math.cos(ball.angle);
+  const sinA = Math.sin(ball.angle);
+  for (let dy = -cells; dy <= cells; dy++) {
+    for (let dx = -cells; dx <= cells; dx++) {
+      const px = dx * CELL_SIZE;
+      const py = dy * CELL_SIZE;
+      const dist = Math.sqrt(px * px + py * py);
+      if (dist > r) continue;
+
+      const cx = bx + dx * CELL_SIZE - Math.floor(CELL_SIZE / 2);
+      const cy = by + dy * CELL_SIZE - Math.floor(CELL_SIZE / 2);
+      const rotY = px * sinA + py * cosA;
+      const isOutline = dist > r - CELL_SIZE * 1.2;
+      const isRedHalf = rotY < 0;
+      const flick = 0.93 + Math.random() * 0.07;
+
+      if (isOutline) {
+        ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(20 * flick)}, ${Math.floor(25 * flick)})`;
+      } else if (isRedHalf) {
+        const normDist = dist / r;
+        const shade = Math.max(0.4, 1 - normDist * 0.6);
+        ctx.fillStyle = `rgb(${Math.floor(230 * shade * flick)}, ${Math.floor(35 * shade * flick)}, ${Math.floor(35 * shade * flick)})`;
+      } else {
+        const normDist = dist / r;
+        const shade = Math.max(0.55, 1 - normDist * 0.4);
+        ctx.fillStyle = `rgb(${Math.floor(220 * shade * flick)}, ${Math.floor(220 * shade * flick)}, ${Math.floor(230 * shade * flick)})`;
+      }
+      ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
+    }
+  }
+}
+
 // --- Rendering ---
 function draw() {
   // Black background
@@ -712,53 +751,9 @@ function draw() {
     );
   }
 
-  // Draw balls as two-tone spinning pixel spheres
+  // Draw balls
   for (const ball of balls) {
-    const bx = Math.round(ball.x / CELL_SIZE) * CELL_SIZE;
-    const by = Math.round(ball.y / CELL_SIZE) * CELL_SIZE;
-    const r = ball.radius;
-    const cells = Math.ceil(r / CELL_SIZE) + 1;
-    const angle = ball.angle;
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
-    for (let dy = -cells; dy <= cells; dy++) {
-      for (let dx = -cells; dx <= cells; dx++) {
-        const px = dx * CELL_SIZE;
-        const py = dy * CELL_SIZE;
-        const dist = Math.sqrt(px * px + py * py);
-
-        // Circular clip
-        if (dist > r) continue;
-
-        const cx = bx + dx * CELL_SIZE - Math.floor(CELL_SIZE / 2);
-        const cy = by + dy * CELL_SIZE - Math.floor(CELL_SIZE / 2);
-
-        // Rotate point to determine which half
-        const rotY = px * sinA + py * cosA;
-
-        const isOutline = dist > r - CELL_SIZE * 1.2;
-        const isRedHalf = rotY < 0;
-
-        const flick = 0.93 + Math.random() * 0.07;
-
-        if (isOutline) {
-          // Dark outline
-          ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(20 * flick)}, ${Math.floor(25 * flick)})`;
-        } else if (isRedHalf) {
-          // Red half
-          const normDist = dist / r;
-          const shade = Math.max(0.4, 1 - normDist * 0.6);
-          ctx.fillStyle = `rgb(${Math.floor(230 * shade * flick)}, ${Math.floor(35 * shade * flick)}, ${Math.floor(35 * shade * flick)})`;
-        } else {
-          // White half
-          const normDist = dist / r;
-          const shade = Math.max(0.55, 1 - normDist * 0.4);
-          ctx.fillStyle = `rgb(${Math.floor(220 * shade * flick)}, ${Math.floor(220 * shade * flick)}, ${Math.floor(230 * shade * flick)})`;
-        }
-
-        ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
-      }
-    }
+    drawBall(ball, ball.radius);
   }
 
   // Scanline effect
@@ -893,6 +888,7 @@ function startLevel() {
   frameCount = 0;
   updateUI();
   gameRunning = true;
+  if (menuAnimFrame) { cancelAnimationFrame(menuAnimFrame); menuAnimFrame = null; }
   overlay.classList.add('hidden');
   lastTime = performance.now();
   if (animFrame) cancelAnimationFrame(animFrame);
@@ -901,6 +897,7 @@ function startLevel() {
 
 function levelComplete() {
   gameRunning = false;
+  if (!menuAnimFrame) menuLoop();
   const timeBonus = Math.round(timeRemaining) * 5;
   score += fillPercent * 10 + lives * 50 + timeBonus;
   level++;
@@ -917,6 +914,7 @@ function levelComplete() {
 
 function gameOver() {
   gameRunning = false;
+  if (!menuAnimFrame) menuLoop();
   const finalScore = score;
   const finalLevel = level;
   setTimeout(() => {
@@ -1224,6 +1222,41 @@ function renderPixelText(canvasEl, text, pxSize) {
 // Draw initial title
 const titleCanvasEl = document.getElementById('titleCanvas');
 if (titleCanvasEl) renderPixelText(titleCanvasEl, 'WALLBALL', 8);
+
+// --- Menu ball animation ---
+const MENU_BALL_RADIUS = BALL_RADIUS * 2;
+const menuBall = {
+  x: W / 2, y: H / 2,
+  vx: 1.8, vy: 1.4,
+  angle: 0,
+  spinSpeed: 0.015
+};
+let menuAnimFrame = null;
+
+function menuLoop() {
+  if (gameRunning) { menuAnimFrame = null; return; }
+
+  // Update menu ball
+  menuBall.x += menuBall.vx;
+  menuBall.y += menuBall.vy;
+  menuBall.angle += menuBall.spinSpeed;
+
+  const margin = MENU_BALL_RADIUS + 4;
+  if (menuBall.x < margin || menuBall.x > W - margin) menuBall.vx = -menuBall.vx;
+  if (menuBall.y < margin || menuBall.y > H - margin) menuBall.vy = -menuBall.vy;
+  menuBall.x = Math.max(margin, Math.min(W - margin, menuBall.x));
+  menuBall.y = Math.max(margin, Math.min(H - margin, menuBall.y));
+
+  // Draw
+  ctx.fillStyle = '#040804';
+  ctx.fillRect(0, 0, W, H);
+  drawBall(menuBall, MENU_BALL_RADIUS);
+
+  menuAnimFrame = requestAnimationFrame(menuLoop);
+}
+
+// Start menu animation
+menuLoop();
 
 startBtn.addEventListener('click', (e) => {
   e.preventDefault();
