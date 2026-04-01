@@ -8,7 +8,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%; height: 100%;
-    background: #0a0a1a;
+    background: #0a0a0a;
     overflow: hidden;
     touch-action: none;
     -webkit-touch-callout: none;
@@ -20,56 +20,64 @@
     position: fixed; top: 0; left: 0; right: 0;
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 16px;
-    color: #00ffcc; font-size: 14px; font-weight: bold;
+    color: #33ff33; font-size: 14px; font-weight: bold;
+    letter-spacing: 2px;
     z-index: 10;
-    background: linear-gradient(to bottom, rgba(10,10,26,0.95), transparent);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent);
     pointer-events: none;
+    text-transform: uppercase;
   }
-  #ui span { text-shadow: 0 0 8px #00ffcc88; }
-  .timer { color: #ffcc00; text-shadow: 0 0 8px #ffcc0066; }
-  .timer.urgent { color: #ff4466; text-shadow: 0 0 8px #ff446688; animation: pulse 0.5s ease-in-out infinite alternate; }
-  @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
-  .lives { color: #ff4466; text-shadow: 0 0 8px #ff446688; }
+  #ui span { text-shadow: 0 0 8px #33ff3388, 0 0 2px #33ff33; }
+  .timer { color: #33ff33; text-shadow: 0 0 8px #33ff3388, 0 0 2px #33ff33; }
+  .timer.urgent { color: #ff3333; text-shadow: 0 0 8px #ff333388, 0 0 2px #ff3333; animation: pulse 0.5s ease-in-out infinite alternate; }
+  @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+  .lives { color: #ff3333; text-shadow: 0 0 8px #ff333388, 0 0 2px #ff3333; }
   #gameCanvas {
     display: block;
     position: fixed;
     top: 0; left: 0;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
   }
   #overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
-    background: rgba(10, 10, 26, 0.92);
+    background: rgba(0, 0, 0, 0.92);
     z-index: 20;
-    color: #fff;
+    color: #33ff33;
     text-align: center;
     padding: 20px;
   }
   #overlay.hidden { display: none; }
   #overlay h1 {
     font-size: 36px;
-    color: #00ffcc;
-    text-shadow: 0 0 20px #00ffcc88;
+    color: #33ff33;
+    text-shadow: 0 0 20px #33ff3366, 0 0 4px #33ff33;
     margin-bottom: 8px;
+    letter-spacing: 6px;
   }
   #overlay h2 {
     font-size: 22px;
-    color: #00ffcc;
-    text-shadow: 0 0 12px #00ffcc88;
+    color: #33ff33;
+    text-shadow: 0 0 12px #33ff3366, 0 0 4px #33ff33;
     margin-bottom: 16px;
+    letter-spacing: 4px;
   }
   #overlay p {
-    font-size: 15px;
-    color: #aabbcc;
-    line-height: 1.6;
+    font-size: 14px;
+    color: #22aa22;
+    line-height: 1.8;
     max-width: 300px;
     margin-bottom: 12px;
+    letter-spacing: 1px;
   }
   #overlay .score-line {
     font-size: 18px;
-    color: #ffcc00;
-    text-shadow: 0 0 10px #ffcc0066;
+    color: #33ff33;
+    text-shadow: 0 0 10px #33ff3366;
     margin: 8px 0;
+    letter-spacing: 2px;
   }
   #overlay button {
     margin-top: 20px;
@@ -77,16 +85,18 @@
     font-size: 18px;
     font-family: 'Courier New', monospace;
     font-weight: bold;
-    color: #0a0a1a;
-    background: #00ffcc;
-    border: none;
-    border-radius: 8px;
+    color: #0a0a0a;
+    background: #33ff33;
+    border: 2px solid #33ff33;
+    border-radius: 0px;
     cursor: pointer;
-    box-shadow: 0 0 20px #00ffcc66;
+    box-shadow: 0 0 20px #33ff3344, inset 0 0 20px #33ff3322;
     -webkit-tap-highlight-color: transparent;
+    letter-spacing: 4px;
+    text-transform: uppercase;
   }
   #overlay button:active {
-    background: #00ddaa;
+    background: #22cc22;
     transform: scale(0.96);
   }
   .swipe-hint {
@@ -99,9 +109,9 @@
   .swipe-hint.visible { opacity: 0.6; }
   .swipe-hint .line {
     position: absolute;
-    background: #00ffcc;
-    border-radius: 2px;
-    box-shadow: 0 0 8px #00ffcc88;
+    background: #33ff33;
+    border-radius: 0;
+    box-shadow: 0 0 8px #33ff3388;
   }
 </style>
 </head>
@@ -110,20 +120,20 @@
 <canvas id="gameCanvas"></canvas>
 
 <div id="ui">
-  <span id="levelDisplay">LEVEL 1</span>
-  <span id="fillDisplay">0%</span>
+  <span id="levelDisplay">LVL 01</span>
+  <span id="fillDisplay">000%</span>
   <span class="timer" id="timerDisplay">1:00</span>
   <span class="lives" id="livesDisplay">&#9829;&#9829;&#9829;</span>
 </div>
 
 <div id="overlay">
   <h1>WALLBALL</h1>
-  <p>Trap the balls by building walls.<br>
-    <strong>Tap &amp; swipe</strong> to choose direction.<br>
-    Fill <strong>75%</strong> of the field to advance.<br>
-    Don't let balls hit your walls!<br>
-    Beat the clock for bonus points!</p>
-  <button id="startBtn">PLAY</button>
+  <p>// TRAP THE BALLS BY BUILDING WALLS<br><br>
+    &gt; <strong>TAP + SWIPE</strong> TO SET DIRECTION<br>
+    &gt; FILL <strong>75%</strong> TO ADVANCE<br>
+    &gt; AVOID BALL CONTACT<br>
+    &gt; BEAT THE CLOCK FOR BONUS</p>
+  <button id="startBtn">START</button>
 </div>
 
 <div class="swipe-hint" id="swipeHint">
@@ -132,7 +142,7 @@
 
 <script>
 // ============================================================
-// WALLBALL - A modern mobile JezzBall
+// WALLBALL - A retro 80s terminal JezzBall
 // ============================================================
 
 const canvas = document.getElementById('gameCanvas');
@@ -147,15 +157,25 @@ const swipeHint = document.getElementById('swipeHint');
 const swipeLine = swipeHint.querySelector('.line');
 
 // --- Constants ---
-const CELL_SIZE = 4;
-const WALL_SPEED = 6;       // cells per frame
+const CELL_SIZE = 6;        // larger cells for chunky pixel look
+const WALL_SPEED = 4;       // cells per frame
 const TARGET_FILL = 75;
-const BALL_RADIUS = 8;
+const BALL_RADIUS = 9;
 const BALL_SPEED_BASE = 2.0;
 const BALL_SPEED_INCREMENT = 0.15;
 const UI_TOP_PAD = 48;
-const BASE_TIME = 60;        // seconds for level 1
-const TIME_PER_LEVEL = 10;   // extra seconds per level
+const BASE_TIME = 60;
+const TIME_PER_LEVEL = 10;
+const GRID_GAP = 1;         // gap between cells for grid look
+
+// --- Colors (terminal green palette) ---
+const COL_BG = [4, 8, 4];
+const COL_GRID_LINE = [8, 18, 8];
+const COL_WALL = [30, 200, 30];
+const COL_WALL_BRIGHT = [100, 255, 100];
+const COL_FILLED = [8, 40, 8];
+const COL_BALL_CORE = [50, 255, 50];
+const COL_BALL_GLOW = [30, 180, 30];
 
 // --- Game State ---
 let W, H, gridW, gridH;
@@ -173,6 +193,10 @@ let touchStart = null;
 let lastTime = 0;
 let timeRemaining = 0;
 let levelTime = 0;
+let frameCount = 0;
+
+// --- Scanline / CRT effect ---
+let scanlineOffset = 0;
 
 // --- Resize ---
 function resize() {
@@ -196,7 +220,7 @@ function initGrid() {
     grid[y * gridW] = 1;
     grid[(gridW - 1) + y * gridW] = 1;
   }
-  // Top UI area filled
+  // Top UI area
   const uiRows = Math.ceil(UI_TOP_PAD / CELL_SIZE);
   for (let y = 0; y < uiRows; y++) {
     for (let x = 0; x < gridW; x++) {
@@ -219,25 +243,16 @@ function isWallOrFilled(gx, gy) {
   return v === 1 || v === 2;
 }
 
-// --- Flood fill to calculate filled area ---
+// --- Flood fill ---
 function recalcFill() {
-  // Mark all open cells as potentially fillable (temporarily set to 2)
-  // Then flood fill from each ball position back to 0
-  // Remaining 2s become filled
-
-  // Step 1: mark all 0 as 2
   for (let i = 0; i < grid.length; i++) {
     if (grid[i] === 0) grid[i] = 2;
   }
-
-  // Step 2: flood fill from each ball to reclaim as 0
   for (const ball of balls) {
     const bx = Math.floor(ball.x / CELL_SIZE);
     const by = Math.floor(ball.y / CELL_SIZE);
     floodFill(bx, by);
   }
-
-  // Step 3: count filled
   let filled = 0;
   for (let i = 0; i < grid.length; i++) {
     if (grid[i] === 2) filled++;
@@ -248,7 +263,6 @@ function recalcFill() {
 function floodFill(sx, sy) {
   if (sx < 0 || sx >= gridW || sy < 0 || sy >= gridH) return;
   if (grid[gridIdx(sx, sy)] !== 2) return;
-
   const stack = [sx, sy];
   while (stack.length > 0) {
     const y = stack.pop();
@@ -281,8 +295,7 @@ function spawnBalls(count) {
       y: minY + Math.random() * (maxY - minY),
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      radius: BALL_RADIUS,
-      hue: (i * 47 + 200) % 360
+      radius: BALL_RADIUS
     });
   }
 }
@@ -292,26 +305,21 @@ function updateBalls() {
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Bounce off grid walls/filled areas
     const gx = Math.floor(ball.x / CELL_SIZE);
     const gy = Math.floor(ball.y / CELL_SIZE);
-    const r = Math.ceil(ball.radius / CELL_SIZE) + 1;
 
-    // Check horizontal bounce
     const nextGx = Math.floor((ball.x + Math.sign(ball.vx) * ball.radius) / CELL_SIZE);
     if (isWallOrFilled(nextGx, gy)) {
       ball.vx = -ball.vx;
       ball.x += ball.vx;
     }
 
-    // Check vertical bounce
     const nextGy = Math.floor((ball.y + Math.sign(ball.vy) * ball.radius) / CELL_SIZE);
     if (isWallOrFilled(gx, nextGy)) {
       ball.vy = -ball.vy;
       ball.y += ball.vy;
     }
 
-    // Safety clamp
     const margin = ball.radius + CELL_SIZE;
     if (ball.x < margin) { ball.x = margin; ball.vx = Math.abs(ball.vx); }
     if (ball.x > W - margin) { ball.x = W - margin; ball.vx = -Math.abs(ball.vx); }
@@ -324,19 +332,19 @@ function updateBalls() {
 function createWall(px, py, direction) {
   const gx = Math.floor(px / CELL_SIZE);
   const gy = Math.floor(py / CELL_SIZE);
-
-  // Don't place on existing wall
   if (isWallOrFilled(gx, gy)) return;
 
   activeWalls.push({
     originX: gx,
     originY: gy,
-    direction: direction, // 'h' or 'v'
-    headA: direction === 'h' ? gx : gy,  // expanding toward min
-    headB: direction === 'h' ? gx : gy,  // expanding toward max
+    direction: direction,
+    headA: direction === 'h' ? gx : gy,
+    headB: direction === 'h' ? gx : gy,
     doneA: false,
     doneB: false,
     cells: [],
+    cellAge: [],       // frame when each cell was added (for wave animation)
+    birthFrame: frameCount,
     alive: true
   });
 }
@@ -346,7 +354,6 @@ function updateWalls() {
     if (!wall.alive) continue;
 
     for (let step = 0; step < WALL_SPEED; step++) {
-      // Expand head A (toward 0)
       if (!wall.doneA) {
         wall.headA--;
         const gx = wall.direction === 'h' ? wall.headA : wall.originX;
@@ -356,10 +363,10 @@ function updateWalls() {
         } else {
           grid[gridIdx(gx, gy)] = 1;
           wall.cells.push(gridIdx(gx, gy));
+          wall.cellAge.push(frameCount);
         }
       }
 
-      // Expand head B (toward max)
       if (!wall.doneB) {
         wall.headB++;
         const gx = wall.direction === 'h' ? wall.headB : wall.originX;
@@ -369,6 +376,7 @@ function updateWalls() {
         } else {
           grid[gridIdx(gx, gy)] = 1;
           wall.cells.push(gridIdx(gx, gy));
+          wall.cellAge.push(frameCount);
         }
       }
     }
@@ -378,10 +386,11 @@ function updateWalls() {
       if (!isWallOrFilled(wall.originX, wall.originY)) {
         grid[gridIdx(wall.originX, wall.originY)] = 1;
         wall.cells.push(gridIdx(wall.originX, wall.originY));
+        wall.cellAge.push(wall.birthFrame);
       }
     }
 
-    // Check ball collision with active wall cells
+    // Ball collision
     let hit = false;
     for (const ball of balls) {
       for (const cellIdx of wall.cells) {
@@ -399,7 +408,6 @@ function updateWalls() {
     }
 
     if (hit) {
-      // Remove wall cells
       for (const cellIdx of wall.cells) {
         grid[cellIdx] = 0;
       }
@@ -410,12 +418,10 @@ function updateWalls() {
         gameOver();
         return;
       }
-      // Flash effect
-      flashScreen('#ff4466');
+      flashScreen('#ff3333');
       continue;
     }
 
-    // Check if wall is complete
     if (wall.doneA && wall.doneB) {
       wall.alive = false;
       recalcFill();
@@ -442,74 +448,207 @@ function flashScreen(color) {
 
 // --- Rendering ---
 function draw() {
-  ctx.fillStyle = '#0a0a1a';
+  // Black background
+  ctx.fillStyle = '#040804';
   ctx.fillRect(0, 0, W, H);
 
-  // Draw grid
-  const imageData = ctx.createImageData(W, H);
-  const data = imageData.data;
+  // Draw subtle grid lines
+  ctx.strokeStyle = 'rgba(20, 40, 20, 0.3)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= W; x += CELL_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(x, UI_TOP_PAD);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for (let y = UI_TOP_PAD; y <= H; y += CELL_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
 
+  // Build a set of active wall cells for special rendering
+  const activeWallCells = new Map(); // cellIdx -> { age, originX, originY, direction }
+  for (const wall of activeWalls) {
+    if (!wall.alive) continue;
+    for (let i = 0; i < wall.cells.length; i++) {
+      activeWallCells.set(wall.cells[i], {
+        age: frameCount - wall.cellAge[i],
+        distFromOrigin: wall.direction === 'h'
+          ? Math.abs((wall.cells[i] % gridW) - wall.originX)
+          : Math.abs(Math.floor(wall.cells[i] / gridW) - wall.originY),
+        originX: wall.originX,
+        originY: wall.originY,
+        direction: wall.direction
+      });
+    }
+  }
+
+  // Draw grid cells
   for (let gy = 0; gy < gridH; gy++) {
     for (let gx = 0; gx < gridW; gx++) {
-      const val = grid[gridIdx(gx, gy)];
+      const idx = gridIdx(gx, gy);
+      const val = grid[idx];
       if (val === 0) continue;
 
       const px = gx * CELL_SIZE;
       const py = gy * CELL_SIZE;
+      const innerSize = CELL_SIZE - GRID_GAP;
 
-      let r, g, b;
-      if (val === 1) {
-        // Wall - cyan glow
-        r = 0; g = 180; b = 160;
+      // Check if this is an active wall cell
+      const wallInfo = activeWallCells.get(idx);
+
+      if (wallInfo) {
+        // === ACTIVE WALL ANIMATION ===
+        const age = wallInfo.age;
+        const dist = wallInfo.distFromOrigin;
+
+        // Wave intensity: newer cells and cells closer to origin glow brighter
+        const wavePulse = Math.max(0, 1 - age / 30); // fades over 30 frames
+        const proximityGlow = Math.max(0, 1 - dist / 40); // brighter near origin
+
+        // Combined intensity
+        const intensity = Math.min(1, wavePulse * 0.7 + proximityGlow * 0.5);
+
+        // Cell size: slightly larger near origin and when new
+        const sizeBoost = Math.max(0, (1 - dist / 20) * wavePulse) * 3;
+        const cellDrawSize = innerSize + sizeBoost;
+        const offset = -sizeBoost / 2;
+
+        // Color: interpolate from bright white-green to normal wall green
+        const r = Math.floor(30 + 225 * intensity);
+        const g = Math.floor(200 + 55 * intensity);
+        const b = Math.floor(30 + 225 * intensity);
+
+        // Glow effect (draw larger rect behind)
+        if (intensity > 0.2) {
+          const glowSize = cellDrawSize + 4 * intensity;
+          const glowOffset = offset - 2 * intensity;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${intensity * 0.3})`;
+          ctx.fillRect(px + glowOffset - 2, py + glowOffset - 2, glowSize + 4, glowSize + 4);
+        }
+
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(px + offset, py + offset, cellDrawSize, cellDrawSize);
+
+        // Bright center pixel
+        if (intensity > 0.3) {
+          ctx.fillStyle = `rgba(200, 255, 200, ${intensity * 0.8})`;
+          const dotSize = 2 + intensity * 2;
+          ctx.fillRect(
+            px + CELL_SIZE / 2 - dotSize / 2,
+            py + CELL_SIZE / 2 - dotSize / 2,
+            dotSize, dotSize
+          );
+        }
+
+      } else if (val === 1) {
+        // Normal wall - static terminal green
+        const flicker = 0.9 + Math.random() * 0.1; // subtle CRT flicker
+        const r = Math.floor(20 * flicker);
+        const g = Math.floor(160 * flicker);
+        const b = Math.floor(20 * flicker);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(px, py, innerSize, innerSize);
+
       } else {
-        // Filled - darker teal
-        r = 5; g = 40; b = 50;
+        // Filled area - dark green
+        ctx.fillStyle = '#081808';
+        ctx.fillRect(px, py, innerSize, innerSize);
       }
+    }
+  }
 
-      for (let dy = 0; dy < CELL_SIZE && py + dy < H; dy++) {
-        for (let dx = 0; dx < CELL_SIZE && px + dx < W; dx++) {
-          const idx = ((py + dy) * W + (px + dx)) * 4;
-          data[idx] = r;
-          data[idx + 1] = g;
-          data[idx + 2] = b;
-          data[idx + 3] = 255;
+  // Draw origin point glow for active walls
+  for (const wall of activeWalls) {
+    if (!wall.alive) continue;
+    const age = frameCount - wall.birthFrame;
+    const pulseIntensity = Math.max(0, 1 - age / 60);
+    if (pulseIntensity <= 0) continue;
+
+    const ox = wall.originX * CELL_SIZE + CELL_SIZE / 2;
+    const oy = wall.originY * CELL_SIZE + CELL_SIZE / 2;
+
+    // Pulsing glow rings at origin
+    for (let ring = 3; ring >= 1; ring--) {
+      const ringSize = (CELL_SIZE * ring) * (1 + pulseIntensity * 0.5);
+      const ringAlpha = pulseIntensity * 0.15 / ring;
+      ctx.fillStyle = `rgba(100, 255, 100, ${ringAlpha})`;
+      ctx.fillRect(
+        ox - ringSize / 2, oy - ringSize / 2,
+        ringSize, ringSize
+      );
+    }
+
+    // Bright center
+    const centerSize = CELL_SIZE + pulseIntensity * 4;
+    ctx.fillStyle = `rgba(200, 255, 200, ${pulseIntensity * 0.9})`;
+    ctx.fillRect(
+      ox - centerSize / 2, oy - centerSize / 2,
+      centerSize, centerSize
+    );
+  }
+
+  // Draw balls as pixelated squares
+  for (const ball of balls) {
+    // Snap ball position to grid for pixel look
+    const bx = Math.round(ball.x / CELL_SIZE) * CELL_SIZE;
+    const by = Math.round(ball.y / CELL_SIZE) * CELL_SIZE;
+    const size = Math.ceil(ball.radius * 2 / CELL_SIZE) * CELL_SIZE;
+
+    // Outer glow
+    const glowPulse = 0.5 + 0.5 * Math.sin(frameCount * 0.1 + ball.x * 0.01);
+    ctx.fillStyle = `rgba(30, 180, 30, ${0.15 + glowPulse * 0.1})`;
+    ctx.fillRect(
+      bx - size / 2 - CELL_SIZE, by - size / 2 - CELL_SIZE,
+      size + CELL_SIZE * 2, size + CELL_SIZE * 2
+    );
+
+    // Draw ball as pixel grid (cross/diamond shape)
+    const cells = Math.ceil(ball.radius / CELL_SIZE);
+    for (let dy = -cells; dy <= cells; dy++) {
+      for (let dx = -cells; dx <= cells; dx++) {
+        const dist = Math.abs(dx) + Math.abs(dy); // manhattan distance for diamond
+        if (dist > cells + 1) continue;
+
+        const cx = bx + dx * CELL_SIZE;
+        const cy = by + dy * CELL_SIZE;
+
+        if (dist <= cells - 1) {
+          // Core - bright green
+          const flick = 0.9 + Math.random() * 0.1;
+          ctx.fillStyle = `rgb(${Math.floor(80 * flick)}, ${Math.floor(255 * flick)}, ${Math.floor(80 * flick)})`;
+          ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
+        } else if (dist <= cells) {
+          // Edge - medium green
+          ctx.fillStyle = `rgb(30, 160, 30)`;
+          ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
+        } else {
+          // Outer edge - dim
+          ctx.fillStyle = `rgba(20, 100, 20, 0.5)`;
+          ctx.fillRect(cx, cy, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
         }
       }
     }
+
+    // Center bright pixel
+    ctx.fillStyle = '#ccffcc';
+    ctx.fillRect(bx, by, CELL_SIZE - GRID_GAP, CELL_SIZE - GRID_GAP);
   }
 
-  ctx.putImageData(imageData, 0, 0);
-
-  // Draw active wall heads (bright glow)
-  for (const wall of activeWalls) {
-    if (!wall.alive) continue;
-    ctx.shadowColor = '#00ffcc';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#00ffcc';
-    for (const cellIdx of wall.cells) {
-      const cx = (cellIdx % gridW) * CELL_SIZE;
-      const cy = Math.floor(cellIdx / gridW) * CELL_SIZE;
-      ctx.fillRect(cx, cy, CELL_SIZE, CELL_SIZE);
-    }
-    ctx.shadowBlur = 0;
+  // Scanline effect
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+  for (let y = 0; y < H; y += 3) {
+    ctx.fillRect(0, y, W, 1);
   }
 
-  // Draw balls
-  for (const ball of balls) {
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fillStyle = `hsl(${ball.hue}, 100%, 65%)`;
-    ctx.shadowColor = `hsl(${ball.hue}, 100%, 65%)`;
-    ctx.shadowBlur = 16;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Inner highlight
-    ctx.beginPath();
-    ctx.arc(ball.x - 2, ball.y - 2, ball.radius * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = `hsla(${ball.hue}, 100%, 90%, 0.5)`;
-    ctx.fill();
-  }
+  // Subtle vignette
+  const vGrad = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, W, H);
 
   // Flash overlay
   if (flashAlpha > 0) {
@@ -521,8 +660,8 @@ function draw() {
 
 // --- UI ---
 function updateUI() {
-  levelDisplay.textContent = `LEVEL ${level}`;
-  fillDisplay.textContent = `${fillPercent}%`;
+  levelDisplay.textContent = `LVL ${String(level).padStart(2, '0')}`;
+  fillDisplay.textContent = `${String(fillPercent).padStart(3, '0')}%`;
   const mins = Math.floor(timeRemaining / 60);
   const secs = Math.floor(timeRemaining % 60);
   timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -542,6 +681,7 @@ function startLevel() {
   fillPercent = 0;
   levelTime = BASE_TIME + (level - 1) * TIME_PER_LEVEL;
   timeRemaining = levelTime;
+  frameCount = 0;
   updateUI();
   gameRunning = true;
   overlay.classList.add('hidden');
@@ -555,13 +695,13 @@ function levelComplete() {
   const timeBonus = Math.round(timeRemaining) * 5;
   score += fillPercent * 10 + lives * 50 + timeBonus;
   level++;
-  flashScreen('#00ffcc');
+  flashScreen('#33ff33');
   setTimeout(() => {
     showOverlay(
-      `LEVEL ${level - 1} CLEAR!`,
-      `Score: ${score}`,
-      `${fillPercent}% filled  |  Time bonus: +${timeBonus}`,
-      level <= 20 ? 'NEXT LEVEL' : 'YOU WIN!'
+      `// LEVEL ${level - 1} CLEAR`,
+      `SCORE: ${score}`,
+      `${fillPercent}% FILLED  //  TIME BONUS: +${timeBonus}`,
+      'CONTINUE'
     );
   }, 500);
 }
@@ -570,10 +710,10 @@ function gameOver() {
   gameRunning = false;
   setTimeout(() => {
     showOverlay(
-      'GAME OVER',
-      `Final Score: ${score}`,
-      `Reached Level ${level}`,
-      'TRY AGAIN'
+      '// GAME OVER',
+      `FINAL SCORE: ${score}`,
+      `REACHED LEVEL ${level}`,
+      'RETRY'
     );
     level = 1;
     lives = 3;
@@ -586,7 +726,7 @@ function showOverlay(title, line1, line2, btnText) {
     <h2>${title}</h2>
     <p class="score-line">${line1}</p>
     <p>${line2}</p>
-    <button id="startBtn">${btnText}</button>
+    <button id="startBtn">&gt; ${btnText}</button>
   `;
   overlay.classList.remove('hidden');
   document.getElementById('startBtn').addEventListener('click', (e) => {
@@ -602,11 +742,11 @@ function showOverlay(title, line1, line2, btnText) {
 // --- Game loop ---
 function gameLoop(timestamp) {
   if (!gameRunning) return;
+  frameCount++;
 
-  // Update timer
   const delta = (timestamp - lastTime) / 1000;
   lastTime = timestamp;
-  if (delta < 1) { // ignore large jumps (e.g. tab switch)
+  if (delta < 1) {
     timeRemaining -= delta;
   }
   if (timeRemaining <= 0) {
@@ -641,8 +781,6 @@ canvas.addEventListener('touchmove', (e) => {
   const dx = t.clientX - touchStart.x;
   const dy = t.clientY - touchStart.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-
-  // Show swipe direction hint
   if (dist > 15) {
     const dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
     showSwipeHint(touchStart.x, touchStart.y, dir);
@@ -653,25 +791,21 @@ canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   hideSwipeHint();
   if (!touchStart || !gameRunning) return;
-
   const t = e.changedTouches[0];
   const dx = t.clientX - touchStart.x;
   const dy = t.clientY - touchStart.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-
   let direction;
   if (dist < 10) {
-    // Tap with no swipe - default to horizontal
     direction = 'h';
   } else {
     direction = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
   }
-
   createWall(touchStart.x, touchStart.y, direction);
   touchStart = null;
 }, { passive: false });
 
-// Mouse fallback for desktop testing
+// Mouse fallback
 let mouseDown = false;
 let mouseStart = null;
 
@@ -695,18 +829,15 @@ canvas.addEventListener('mouseup', (e) => {
   if (!mouseDown || !mouseStart || !gameRunning) return;
   mouseDown = false;
   hideSwipeHint();
-
   const dx = e.clientX - mouseStart.x;
   const dy = e.clientY - mouseStart.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-
   let direction;
   if (dist < 10) {
     direction = 'h';
   } else {
     direction = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
   }
-
   createWall(mouseStart.x, mouseStart.y, direction);
   mouseStart = null;
 });
@@ -716,7 +847,6 @@ function showSwipeHint(x, y, dir) {
   swipeHint.classList.add('visible');
   swipeHint.style.left = x + 'px';
   swipeHint.style.top = y + 'px';
-
   if (dir === 'h') {
     swipeLine.style.width = '60px';
     swipeLine.style.height = '3px';
@@ -734,14 +864,10 @@ function hideSwipeHint() {
   swipeHint.classList.remove('visible');
 }
 
-// --- Window events ---
 window.addEventListener('resize', () => {
-  if (!gameRunning) {
-    resize();
-  }
+  if (!gameRunning) resize();
 });
 
-// --- Init ---
 resize();
 
 startBtn.addEventListener('click', (e) => {
