@@ -51,12 +51,11 @@
     padding: 20px;
   }
   #overlay.hidden { display: none; }
-  #overlay h1 {
-    font-size: 36px;
-    color: #ffffff;
-    text-shadow: 0 0 20px #55bbff66, 0 0 4px #55bbff;
-    margin-bottom: 8px;
-    letter-spacing: 6px;
+  #overlay h1 { display: none; }
+  #titleCanvas {
+    margin-bottom: 12px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
   }
   #overlay h2 {
     font-size: 22px;
@@ -117,42 +116,32 @@
   .name-input-row {
     display: flex;
     gap: 8px;
-    margin-top: 10px;
+    margin-top: 14px;
     align-items: center;
     pointer-events: auto;
   }
   .name-input-row input {
     font-family: 'Courier New', monospace;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
+    height: 44px;
+    padding: 0 12px;
+    border: 2px solid #55bbff;
+    box-sizing: border-box;
+    letter-spacing: 2px;
+    text-transform: uppercase;
     color: #cceeff;
     background: rgba(0, 0, 0, 0.8);
-    border: 2px solid #55bbff;
-    padding: 8px 12px;
-    width: 140px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
+    width: 150px;
     outline: none;
   }
   .name-input-row input::placeholder {
     color: #334455;
   }
-  .name-input-row button {
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    font-weight: bold;
-    color: #0a0a0a;
-    background: #55bbff;
-    border: 2px solid #55bbff;
-    padding: 8px 14px;
-    cursor: pointer;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
   #overlay button {
-    margin-top: 20px;
-    padding: 14px 40px;
-    font-size: 18px;
+    margin-top: 16px;
+    padding: 12px 36px;
+    font-size: 16px;
     font-family: 'Courier New', monospace;
     font-weight: bold;
     color: #0a0a0a;
@@ -162,12 +151,19 @@
     cursor: pointer;
     box-shadow: 0 0 20px #55bbff44, inset 0 0 20px #55bbff22;
     -webkit-tap-highlight-color: transparent;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     text-transform: uppercase;
   }
   #overlay button:active {
     background: #44aaee;
     transform: scale(0.96);
+  }
+  #overlay #saveScoreBtn {
+    margin-top: 0;
+    padding: 0 20px;
+    height: 44px;
+    font-size: 14px;
+    box-shadow: none;
   }
   .swipe-hint {
     position: fixed;
@@ -191,13 +187,13 @@
 
 <div id="ui">
   <span id="levelDisplay">LVL 01</span>
-  <span id="fillDisplay">000%</span>
+  <span id="fillDisplay">0%</span>
   <span class="timer" id="timerDisplay">1:00</span>
   <canvas class="lives" id="livesDisplay" width="90" height="28"></canvas>
 </div>
 
 <div id="overlay">
-  <h1>WALLBALL</h1>
+  <canvas id="titleCanvas"></canvas>
   <p>// TRAP THE BALLS BY BUILDING WALLS<br><br>
     &gt; <strong>TAP + SWIPE</strong> TO SET DIRECTION<br>
     &gt; FILL <strong>75%</strong> TO ADVANCE<br>
@@ -230,7 +226,7 @@ const swipeLine = swipeHint.querySelector('.line');
 const CELL_SIZE = 6;        // larger cells for chunky pixel look
 const WALL_SPEED = 4;       // cells per frame
 const TARGET_FILL = 75;
-const BALL_RADIUS = 42;
+const BALL_RADIUS = 21;
 const BALL_SPEED_BASE = 2.0;
 const BALL_SPEED_INCREMENT = 0.15;
 const UI_TOP_PAD = 48;
@@ -378,26 +374,43 @@ function updateBalls() {
     ball.y += ball.vy;
     ball.angle += ball.spinSpeed;
 
-    const gx = Math.floor(ball.x / CELL_SIZE);
-    const gy = Math.floor(ball.y / CELL_SIZE);
+    const r = ball.radius;
 
-    const nextGx = Math.floor((ball.x + Math.sign(ball.vx) * ball.radius) / CELL_SIZE);
-    if (isWallOrFilled(nextGx, gy)) {
+    // Check horizontal collision — sample multiple points along the leading edge
+    let hitX = false;
+    const edgeX = ball.x + Math.sign(ball.vx) * r;
+    for (let offset = -r + CELL_SIZE; offset <= r - CELL_SIZE; offset += CELL_SIZE) {
+      const checkGx = Math.floor(edgeX / CELL_SIZE);
+      const checkGy = Math.floor((ball.y + offset) / CELL_SIZE);
+      if (isWallOrFilled(checkGx, checkGy)) { hitX = true; break; }
+    }
+    if (hitX) {
       ball.vx = -ball.vx;
-      ball.x += ball.vx;
+      ball.x += ball.vx * 2;
     }
 
-    const nextGy = Math.floor((ball.y + Math.sign(ball.vy) * ball.radius) / CELL_SIZE);
-    if (isWallOrFilled(gx, nextGy)) {
+    // Check vertical collision — sample multiple points along the leading edge
+    let hitY = false;
+    const edgeY = ball.y + Math.sign(ball.vy) * r;
+    for (let offset = -r + CELL_SIZE; offset <= r - CELL_SIZE; offset += CELL_SIZE) {
+      const checkGx = Math.floor((ball.x + offset) / CELL_SIZE);
+      const checkGy = Math.floor(edgeY / CELL_SIZE);
+      if (isWallOrFilled(checkGx, checkGy)) { hitY = true; break; }
+    }
+    if (hitY) {
       ball.vy = -ball.vy;
-      ball.y += ball.vy;
+      ball.y += ball.vy * 2;
     }
 
-    const margin = ball.radius + CELL_SIZE;
-    if (ball.x < margin) { ball.x = margin; ball.vx = Math.abs(ball.vx); }
-    if (ball.x > W - margin) { ball.x = W - margin; ball.vx = -Math.abs(ball.vx); }
-    if (ball.y < UI_TOP_PAD + margin) { ball.y = UI_TOP_PAD + margin; ball.vy = Math.abs(ball.vy); }
-    if (ball.y > H - margin) { ball.y = H - margin; ball.vy = -Math.abs(ball.vy); }
+    // Keep balls in bounds — use radius as margin from wall edges
+    const wallLeft = CELL_SIZE + r;
+    const wallRight = W - CELL_SIZE - r;
+    const wallTop = UI_TOP_PAD + r;
+    const wallBottom = H - CELL_SIZE - r;
+    if (ball.x < wallLeft) { ball.x = wallLeft; ball.vx = Math.abs(ball.vx); }
+    if (ball.x > wallRight) { ball.x = wallRight; ball.vx = -Math.abs(ball.vx); }
+    if (ball.y < wallTop) { ball.y = wallTop; ball.vy = Math.abs(ball.vy); }
+    if (ball.y > wallBottom) { ball.y = wallBottom; ball.vy = -Math.abs(ball.vy); }
   }
 }
 
@@ -689,9 +702,6 @@ function draw() {
     const angle = ball.angle;
     const cosA = Math.cos(angle);
     const sinA = Math.sin(angle);
-    const bandWidth = CELL_SIZE * 2.5;
-    const buttonRadius = CELL_SIZE * 3.5;
-
     for (let dy = -cells; dy <= cells; dy++) {
       for (let dx = -cells; dx <= cells; dx++) {
         const px = dx * CELL_SIZE;
@@ -701,37 +711,27 @@ function draw() {
         // Circular clip
         if (dist > r) continue;
 
-        const cx = bx + dx * CELL_SIZE;
-        const cy = by + dy * CELL_SIZE;
+        const cx = bx + dx * CELL_SIZE - Math.floor(CELL_SIZE / 2);
+        const cy = by + dy * CELL_SIZE - Math.floor(CELL_SIZE / 2);
 
         // Rotate point to determine which half
         const rotY = px * sinA + py * cosA;
 
         const isOutline = dist > r - CELL_SIZE * 1.2;
-        const isBand = Math.abs(rotY) < bandWidth;
-        const isButton = dist < buttonRadius && isBand;
-        const isTopHalf = rotY < -bandWidth;
+        const isRedHalf = rotY < 0;
 
         const flick = 0.93 + Math.random() * 0.07;
 
         if (isOutline) {
           // Dark outline
           ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(20 * flick)}, ${Math.floor(25 * flick)})`;
-        } else if (isButton) {
-          // Center button — bright white dot
-          const btnDist = dist / buttonRadius;
-          const btnShade = 1 - btnDist * 0.2;
-          ctx.fillStyle = `rgb(${Math.floor(240 * btnShade * flick)}, ${Math.floor(240 * btnShade * flick)}, ${Math.floor(250 * btnShade * flick)})`;
-        } else if (isBand) {
-          // Dividing band — dark stripe
-          ctx.fillStyle = `rgb(${Math.floor(25 * flick)}, ${Math.floor(25 * flick)}, ${Math.floor(30 * flick)})`;
-        } else if (isTopHalf) {
-          // Top half — RED with shading
+        } else if (isRedHalf) {
+          // Red half
           const normDist = dist / r;
           const shade = Math.max(0.4, 1 - normDist * 0.6);
           ctx.fillStyle = `rgb(${Math.floor(230 * shade * flick)}, ${Math.floor(35 * shade * flick)}, ${Math.floor(35 * shade * flick)})`;
         } else {
-          // Bottom half — WHITE with slight shading
+          // White half
           const normDist = dist / r;
           const shade = Math.max(0.55, 1 - normDist * 0.4);
           ctx.fillStyle = `rgb(${Math.floor(220 * shade * flick)}, ${Math.floor(220 * shade * flick)}, ${Math.floor(230 * shade * flick)})`;
@@ -802,7 +802,7 @@ const livesCtx = livesCanvas.getContext('2d');
 // --- UI ---
 function updateUI() {
   levelDisplay.textContent = `LVL ${String(level).padStart(2, '0')}`;
-  fillDisplay.textContent = `${String(fillPercent).padStart(3, '0')}%`;
+  fillDisplay.textContent = `${fillPercent}%`;
   const mins = Math.floor(timeRemaining / 60);
   const secs = Math.floor(timeRemaining % 60);
   timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -911,14 +911,14 @@ function gameOver() {
 function showGameOverOverlay(finalScore, finalLevel) {
   const highScore = isHighScore(finalScore);
   let html = `
-    <h2>// GAME OVER</h2>
+    <canvas id="gameOverTitle" style="margin-bottom:12px; image-rendering:pixelated; image-rendering:crisp-edges;"></canvas>
     <p class="score-line">FINAL SCORE: ${finalScore}</p>
     <p>REACHED LEVEL ${finalLevel}</p>
   `;
 
   if (highScore && finalScore > 0) {
     html += `
-      <p class="score-line" style="font-size:14px; color:#33ff33;">NEW HIGH SCORE!</p>
+      <p class="score-line" style="font-size:14px; color:#55bbff;">NEW HIGH SCORE!</p>
       <div class="name-input-row">
         <input type="text" id="nameInput" maxlength="6" placeholder="NAME" autocomplete="off" />
         <button id="saveScoreBtn">SAVE</button>
@@ -931,6 +931,9 @@ function showGameOverOverlay(finalScore, finalLevel) {
 
   overlay.innerHTML = html;
   overlay.classList.remove('hidden');
+
+  const goCanvas = document.getElementById('gameOverTitle');
+  if (goCanvas) renderPixelText(goCanvas, 'GAME OVER', 6);
 
   document.getElementById('startBtn').addEventListener('click', (e) => { e.preventDefault(); startLevel(); });
   document.getElementById('startBtn').addEventListener('touchend', (e) => { e.preventDefault(); startLevel(); });
@@ -1103,6 +1106,105 @@ window.addEventListener('resize', () => {
 });
 
 resize();
+
+// --- Pixel font & title renderer ---
+const PIXEL_FONT = {
+  A: [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+  B: [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0]],
+  E: [[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+  G: [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  L: [[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+  M: [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+  O: [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  R: [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
+  V: [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,1,0,1,0],[0,0,1,0,0]],
+  W: [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,1,0,1],[1,0,1,0,1],[1,1,0,1,1],[1,1,0,1,1]],
+  ' ': [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],
+};
+
+function renderPixelText(canvasEl, text, pxSize) {
+  const tCtx = canvasEl.getContext('2d');
+  const charH = 7;
+  const gap = 1;
+  const shadowOff = 2;
+
+  // Calculate total width accounting for variable char widths
+  let totalW = shadowOff;
+  for (let i = 0; i < text.length; i++) {
+    const g = PIXEL_FONT[text[i]];
+    if (!g) continue;
+    totalW += g[0].length + (i < text.length - 1 ? gap : 0);
+  }
+  const totalH = charH + shadowOff;
+
+  canvasEl.width = totalW * pxSize;
+  canvasEl.height = totalH * pxSize;
+  canvasEl.style.width = (totalW * pxSize) + 'px';
+  canvasEl.style.height = (totalH * pxSize) + 'px';
+
+  tCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+  // Two passes: shadow then main
+  for (let pass = 0; pass < 2; pass++) {
+    const offX = pass === 0 ? shadowOff : 0;
+    const offY = pass === 0 ? shadowOff : 0;
+    let cursorX = offX;
+
+    for (let ci = 0; ci < text.length; ci++) {
+      const glyph = PIXEL_FONT[text[ci]];
+      if (!glyph) continue;
+      const charW = glyph[0].length;
+
+      for (let row = 0; row < glyph.length; row++) {
+        for (let col = 0; col < charW; col++) {
+          if (glyph[row][col] === 0) continue;
+          const x = (cursorX + col) * pxSize;
+          const y = (offY + row) * pxSize;
+
+          if (pass === 0) {
+            tCtx.fillStyle = '#1a3050';
+          } else {
+            tCtx.fillStyle = (row === 0 || col === 0) ? '#88ccff' : '#55bbff';
+          }
+          tCtx.fillRect(x, y, pxSize, pxSize);
+        }
+      }
+      cursorX += charW + gap;
+    }
+  }
+
+  // Edge shading pass
+  let cursorX = 0;
+  for (let ci = 0; ci < text.length; ci++) {
+    const glyph = PIXEL_FONT[text[ci]];
+    if (!glyph) continue;
+    const charW = glyph[0].length;
+
+    for (let row = 0; row < glyph.length; row++) {
+      for (let col = 0; col < charW; col++) {
+        if (glyph[row][col] === 0) continue;
+        const x = (cursorX + col) * pxSize;
+        const y = row * pxSize;
+
+        const rightEmpty = col + 1 >= charW || glyph[row][col + 1] === 0;
+        if (rightEmpty) {
+          tCtx.fillStyle = '#3388bb';
+          tCtx.fillRect(x + pxSize - 1, y, 1, pxSize);
+        }
+        const bottomEmpty = row + 1 >= charH || glyph[row + 1][col] === 0;
+        if (bottomEmpty) {
+          tCtx.fillStyle = '#3388bb';
+          tCtx.fillRect(x, y + pxSize - 1, pxSize, 1);
+        }
+      }
+    }
+    cursorX += charW + gap;
+  }
+}
+
+// Draw initial title
+const titleCanvasEl = document.getElementById('titleCanvas');
+if (titleCanvasEl) renderPixelText(titleCanvasEl, 'WALLBALL', 8);
 
 startBtn.addEventListener('click', (e) => {
   e.preventDefault();
