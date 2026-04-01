@@ -26,6 +26,9 @@
     pointer-events: none;
   }
   #ui span { text-shadow: 0 0 8px #00ffcc88; }
+  .timer { color: #ffcc00; text-shadow: 0 0 8px #ffcc0066; }
+  .timer.urgent { color: #ff4466; text-shadow: 0 0 8px #ff446688; animation: pulse 0.5s ease-in-out infinite alternate; }
+  @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
   .lives { color: #ff4466; text-shadow: 0 0 8px #ff446688; }
   #gameCanvas {
     display: block;
@@ -109,6 +112,7 @@
 <div id="ui">
   <span id="levelDisplay">LEVEL 1</span>
   <span id="fillDisplay">0%</span>
+  <span class="timer" id="timerDisplay">1:00</span>
   <span class="lives" id="livesDisplay">&#9829;&#9829;&#9829;</span>
 </div>
 
@@ -117,7 +121,8 @@
   <p>Trap the balls by building walls.<br>
     <strong>Tap &amp; swipe</strong> to choose direction.<br>
     Fill <strong>75%</strong> of the field to advance.<br>
-    Don't let balls hit your walls!</p>
+    Don't let balls hit your walls!<br>
+    Beat the clock for bonus points!</p>
   <button id="startBtn">PLAY</button>
 </div>
 
@@ -137,6 +142,7 @@ const startBtn = document.getElementById('startBtn');
 const levelDisplay = document.getElementById('levelDisplay');
 const fillDisplay = document.getElementById('fillDisplay');
 const livesDisplay = document.getElementById('livesDisplay');
+const timerDisplay = document.getElementById('timerDisplay');
 const swipeHint = document.getElementById('swipeHint');
 const swipeLine = swipeHint.querySelector('.line');
 
@@ -148,6 +154,8 @@ const BALL_RADIUS = 8;
 const BALL_SPEED_BASE = 2.0;
 const BALL_SPEED_INCREMENT = 0.15;
 const UI_TOP_PAD = 48;
+const BASE_TIME = 60;        // seconds for level 1
+const TIME_PER_LEVEL = 10;   // extra seconds per level
 
 // --- Game State ---
 let W, H, gridW, gridH;
@@ -163,6 +171,8 @@ let gameRunning = false;
 let animFrame = null;
 let touchStart = null;
 let lastTime = 0;
+let timeRemaining = 0;
+let levelTime = 0;
 
 // --- Resize ---
 function resize() {
@@ -513,6 +523,10 @@ function draw() {
 function updateUI() {
   levelDisplay.textContent = `LEVEL ${level}`;
   fillDisplay.textContent = `${fillPercent}%`;
+  const mins = Math.floor(timeRemaining / 60);
+  const secs = Math.floor(timeRemaining % 60);
+  timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  timerDisplay.classList.toggle('urgent', timeRemaining <= 10);
   let hearts = '';
   for (let i = 0; i < lives; i++) hearts += '\u2665';
   livesDisplay.textContent = hearts;
@@ -526,6 +540,8 @@ function startLevel() {
   spawnBalls(ballCount);
   activeWalls = [];
   fillPercent = 0;
+  levelTime = BASE_TIME + (level - 1) * TIME_PER_LEVEL;
+  timeRemaining = levelTime;
   updateUI();
   gameRunning = true;
   overlay.classList.add('hidden');
@@ -536,14 +552,15 @@ function startLevel() {
 
 function levelComplete() {
   gameRunning = false;
-  score += fillPercent * 10 + lives * 50;
+  const timeBonus = Math.round(timeRemaining) * 5;
+  score += fillPercent * 10 + lives * 50 + timeBonus;
   level++;
   flashScreen('#00ffcc');
   setTimeout(() => {
     showOverlay(
       `LEVEL ${level - 1} CLEAR!`,
       `Score: ${score}`,
-      `${fillPercent}% filled`,
+      `${fillPercent}% filled  |  Time bonus: +${timeBonus}`,
       level <= 20 ? 'NEXT LEVEL' : 'YOU WIN!'
     );
   }, 500);
@@ -583,8 +600,22 @@ function showOverlay(title, line1, line2, btnText) {
 }
 
 // --- Game loop ---
-function gameLoop() {
+function gameLoop(timestamp) {
   if (!gameRunning) return;
+
+  // Update timer
+  const delta = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+  if (delta < 1) { // ignore large jumps (e.g. tab switch)
+    timeRemaining -= delta;
+  }
+  if (timeRemaining <= 0) {
+    timeRemaining = 0;
+    updateUI();
+    gameOver();
+    return;
+  }
+  updateUI();
 
   updateBalls();
   updateWalls();
