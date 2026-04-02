@@ -371,36 +371,45 @@ function spawnBalls(count) {
 function updateBalls(dt) {
   const scale = dt * 60; // normalize to 60fps
   for (const ball of balls) {
-    ball.x += ball.vx * scale;
-    ball.y += ball.vy * scale;
     ball.angle += ball.spinSpeed * scale;
-
     const r = ball.radius;
 
-    // Check horizontal collision — sample multiple points along the leading edge
-    let hitX = false;
-    const edgeX = ball.x + Math.sign(ball.vx) * r;
-    for (let offset = -r + CELL_SIZE; offset <= r - CELL_SIZE; offset += CELL_SIZE) {
-      const checkGx = Math.floor(edgeX / CELL_SIZE);
-      const checkGy = Math.floor((ball.y + offset) / CELL_SIZE);
-      if (isWallOrFilled(checkGx, checkGy)) { hitX = true; break; }
-    }
-    if (hitX) {
-      ball.vx = -ball.vx;
-      ball.x += ball.vx * 2;
-    }
+    // Substep movement — max step of half a cell to prevent tunneling
+    const totalDx = ball.vx * scale;
+    const totalDy = ball.vy * scale;
+    const maxStep = CELL_SIZE * 0.5;
+    const dist = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+    const steps = Math.max(1, Math.ceil(dist / maxStep));
 
-    // Check vertical collision — sample multiple points along the leading edge
-    let hitY = false;
-    const edgeY = ball.y + Math.sign(ball.vy) * r;
-    for (let offset = -r + CELL_SIZE; offset <= r - CELL_SIZE; offset += CELL_SIZE) {
-      const checkGx = Math.floor((ball.x + offset) / CELL_SIZE);
-      const checkGy = Math.floor(edgeY / CELL_SIZE);
-      if (isWallOrFilled(checkGx, checkGy)) { hitY = true; break; }
-    }
-    if (hitY) {
-      ball.vy = -ball.vy;
-      ball.y += ball.vy * 2;
+    for (let s = 0; s < steps; s++) {
+      ball.x += totalDx / steps;
+      ball.y += totalDy / steps;
+
+      // Check horizontal collision — sample multiple points along the leading edge
+      let hitX = false;
+      const edgeX = ball.x + Math.sign(ball.vx) * r;
+      for (let offset = -r + CELL_SIZE; offset <= r - CELL_SIZE; offset += CELL_SIZE) {
+        const checkGx = Math.floor(edgeX / CELL_SIZE);
+        const checkGy = Math.floor((ball.y + offset) / CELL_SIZE);
+        if (isWallOrFilled(checkGx, checkGy)) { hitX = true; break; }
+      }
+      if (hitX) {
+        ball.vx = -ball.vx;
+        ball.x += ball.vx * 2;
+      }
+
+      // Check vertical collision — sample multiple points along the leading edge
+      let hitY = false;
+      const edgeY = ball.y + Math.sign(ball.vy) * r;
+      for (let offset = -r + CELL_SIZE; offset <= r - CELL_SIZE; offset += CELL_SIZE) {
+        const checkGx = Math.floor((ball.x + offset) / CELL_SIZE);
+        const checkGy = Math.floor(edgeY / CELL_SIZE);
+        if (isWallOrFilled(checkGx, checkGy)) { hitY = true; break; }
+      }
+      if (hitY) {
+        ball.vy = -ball.vy;
+        ball.y += ball.vy * 2;
+      }
     }
 
     // Keep balls in bounds — use radius as margin from wall edges
