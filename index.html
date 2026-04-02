@@ -222,6 +222,62 @@ const timerDisplay = document.getElementById('timerDisplay');
 const swipeHint = document.getElementById('swipeHint');
 const swipeLine = swipeHint.querySelector('.line');
 
+// --- Audio ---
+const audioMenu = new Audio('audio/menu.mp3');
+const audioGameplay = new Audio('audio/gameplay.mp3');
+const audioLevelClear = new Audio('audio/levelclear.mp3');
+audioMenu.loop = true;
+audioGameplay.loop = true;
+audioLevelClear.loop = false;
+
+let audioStarted = false; // browsers block autoplay until user interaction
+let currentTrack = null;
+
+function fadeOut(audio, duration) {
+  if (!audio || audio.paused) return Promise.resolve();
+  return new Promise(resolve => {
+    const startVol = audio.volume;
+    const steps = 20;
+    const stepTime = duration / steps;
+    let step = 0;
+    const fade = setInterval(() => {
+      step++;
+      audio.volume = Math.max(0, startVol * (1 - step / steps));
+      if (step >= steps) {
+        clearInterval(fade);
+        audio.pause();
+        audio.volume = startVol;
+        resolve();
+      }
+    }, stepTime);
+  });
+}
+
+function playTrack(audio, volume) {
+  if (currentTrack === audio && !audio.paused) return;
+  const prev = currentTrack;
+  currentTrack = audio;
+  if (prev && prev !== audio && !prev.paused) {
+    fadeOut(prev, 400).then(() => {
+      audio.volume = volume || 0.5;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    });
+  } else {
+    audio.volume = volume || 0.5;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+}
+
+function stopAllAudio() {
+  [audioMenu, audioGameplay, audioLevelClear].forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
+  currentTrack = null;
+}
+
 // --- Constants ---
 const CELL_SIZE = 6;        // larger cells for chunky pixel look
 const WALL_SPEED = 2;       // cells per frame
@@ -903,6 +959,7 @@ function startLevel() {
   updateUI();
   gameRunning = true;
   if (menuAnimFrame) { cancelAnimationFrame(menuAnimFrame); menuAnimFrame = null; }
+  playTrack(audioGameplay, 0.4);
   document.getElementById('ui').style.display = '';
   overlay.classList.add('hidden');
   lastTime = performance.now();
@@ -912,6 +969,7 @@ function startLevel() {
 
 function levelComplete() {
   gameRunning = false;
+  playTrack(audioLevelClear, 0.5);
   const timeBonus = Math.round(timeRemaining) * 5;
   score += fillPercent * 10 + lives * 50 + timeBonus;
   level++;
@@ -929,6 +987,7 @@ function levelComplete() {
 
 function gameOver() {
   gameRunning = false;
+  playTrack(audioMenu, 0.4);
   const finalScore = score;
   const finalLevel = level;
   setTimeout(() => {
@@ -1284,12 +1343,28 @@ function menuLoop(timestamp) {
 // Start menu animation
 menuLoop();
 
+// Start menu music on first interaction
+document.addEventListener('click', () => {
+  if (!audioStarted) {
+    audioStarted = true;
+    playTrack(audioMenu, 0.4);
+  }
+}, { once: true });
+document.addEventListener('touchend', () => {
+  if (!audioStarted) {
+    audioStarted = true;
+    playTrack(audioMenu, 0.4);
+  }
+}, { once: true });
+
 startBtn.addEventListener('click', (e) => {
   e.preventDefault();
+  if (!audioStarted) { audioStarted = true; }
   startLevel();
 });
 startBtn.addEventListener('touchend', (e) => {
   e.preventDefault();
+  if (!audioStarted) { audioStarted = true; }
   startLevel();
 });
 </script>
