@@ -1343,28 +1343,31 @@ function menuLoop(timestamp) {
 // Start menu animation
 menuLoop();
 
-// Start menu music on first interaction
-document.addEventListener('click', () => {
-  if (!audioStarted) {
-    audioStarted = true;
-    playTrack(audioMenu, 0.4);
-  }
-}, { once: true });
-document.addEventListener('touchend', () => {
-  if (!audioStarted) {
-    audioStarted = true;
-    playTrack(audioMenu, 0.4);
-  }
-}, { once: true });
+// Try autoplay immediately — will fail on most browsers but worth a shot
+audioMenu.volume = 0.4;
+audioMenu.play().then(() => {
+  audioStarted = true;
+  currentTrack = audioMenu;
+}).catch(() => {});
+
+// If autoplay failed, start menu music on ANY interaction (scroll, mouse move, touch, key, etc.)
+const interactionEvents = ['click', 'touchstart', 'touchend', 'mousemove', 'scroll', 'keydown', 'pointerdown'];
+function startMenuAudio() {
+  if (audioStarted) return;
+  audioStarted = true;
+  playTrack(audioMenu, 0.4);
+  interactionEvents.forEach(evt => document.removeEventListener(evt, startMenuAudio));
+}
+interactionEvents.forEach(evt => document.addEventListener(evt, startMenuAudio, { passive: true }));
 
 startBtn.addEventListener('click', (e) => {
   e.preventDefault();
-  if (!audioStarted) { audioStarted = true; }
+  startMenuAudio();
   startLevel();
 });
 startBtn.addEventListener('touchend', (e) => {
   e.preventDefault();
-  if (!audioStarted) { audioStarted = true; }
+  startMenuAudio();
   startLevel();
 });
 </script>
