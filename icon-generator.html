@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head><title>WallBall Icon Generator</title></head>
+<body style="background:#111;color:#eee;font-family:monospace;text-align:center;padding:40px;">
+<h2>WallBall App Icon</h2>
+<canvas id="icon" width="512" height="512" style="border:1px solid #333;image-rendering:pixelated;"></canvas>
+<br><br>
+<a id="dl" download="wallball-icon.png" style="color:#55bbff;font-size:18px;">Download 512x512 PNG</a>
+<br><br>
+<canvas id="icon1024" width="1024" height="1024" style="display:none;"></canvas>
+<a id="dl1024" download="wallball-icon-1024.png" style="color:#55bbff;font-size:18px;">Download 1024x1024 PNG</a>
+
+<script>
+function renderIcon(canvas, size) {
+  const ctx = canvas.getContext('2d');
+  const CELL = Math.floor(size / 30); // chunky but not too chunky
+  const center = size / 2; // exact center
+  const radius = size * 0.32;
+
+  // Blue background matching game play area
+  ctx.fillStyle = 'rgb(30, 80, 140)';
+  ctx.fillRect(0, 0, size, size);
+
+  // Blue grid lines matching the game
+  ctx.fillStyle = 'rgba(15, 50, 90, 0.5)';
+  for (let x = 0; x < size; x += CELL) {
+    ctx.fillRect(x, 0, 1, size);
+  }
+  for (let y = 0; y < size; y += CELL) {
+    ctx.fillRect(0, y, size, 1);
+  }
+
+  // Draw the ball
+  const ball = { x: center, y: center, angle: -0.3 };
+  const r = radius;
+  const cells = Math.ceil(r / CELL) + 1;
+  const cosA = Math.cos(ball.angle);
+  const sinA = Math.sin(ball.angle);
+
+  // Seed random for consistent flicker
+  let seed = 42;
+  function seededRandom() {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return (seed - 1) / 2147483646;
+  }
+
+  for (let dy = -cells; dy <= cells; dy++) {
+    for (let dx = -cells; dx <= cells; dx++) {
+      const px = dx * CELL;
+      const py = dy * CELL;
+      const dist = Math.sqrt(px * px + py * py);
+      if (dist > r) continue;
+
+      const cx = Math.round(ball.x / CELL) * CELL + dx * CELL - Math.floor(CELL / 2);
+      const cy = Math.round(ball.y / CELL) * CELL + dy * CELL - Math.floor(CELL / 2);
+      const rotY = px * sinA + py * cosA;
+      const isOutline = dist > r - CELL * 1.2;
+      const isRedHalf = rotY < 0;
+      const flick = 0.93 + seededRandom() * 0.07;
+
+      if (isOutline) {
+        ctx.fillStyle = `rgb(${Math.floor(20 * flick)}, ${Math.floor(20 * flick)}, ${Math.floor(25 * flick)})`;
+      } else if (isRedHalf) {
+        const normDist = dist / r;
+        const shade = Math.max(0.4, 1 - normDist * 0.6);
+        ctx.fillStyle = `rgb(${Math.floor(230 * shade * flick)}, ${Math.floor(35 * shade * flick)}, ${Math.floor(35 * shade * flick)})`;
+      } else {
+        const normDist = dist / r;
+        const shade = Math.max(0.55, 1 - normDist * 0.4);
+        ctx.fillStyle = `rgb(${Math.floor(220 * shade * flick)}, ${Math.floor(220 * shade * flick)}, ${Math.floor(230 * shade * flick)})`;
+      }
+      ctx.fillRect(cx, cy, CELL - 1, CELL - 1);
+    }
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
+// Render both sizes
+const png512 = renderIcon(document.getElementById('icon'), 512);
+const png1024 = renderIcon(document.getElementById('icon1024'), 1024);
+
+document.getElementById('dl').href = png512;
+document.getElementById('dl1024').href = png1024;
+</script>
+</body>
+</html>
