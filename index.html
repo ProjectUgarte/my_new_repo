@@ -916,7 +916,11 @@ function getLeaderboard() {
 }
 
 function saveLeaderboard(board) {
-  localStorage.setItem('wallball_leaderboard', JSON.stringify(board));
+  // Safari private browsing / full storage can throw — a failed save
+  // shouldn't break the game-over flow right after a high score.
+  try {
+    localStorage.setItem('wallball_leaderboard', JSON.stringify(board));
+  } catch { /* score just won't persist */ }
 }
 
 function addToLeaderboard(name, score, lvl) {
